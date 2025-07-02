@@ -312,7 +312,7 @@ export async function POST(request: NextRequest) {
       outputs: simulationOutputs,
       metrics: metrics,
       scenario_used: activeScenario.title,
-      ai_model: process.env.XAI_API_KEY ? "grok-beta" : "gpt-3.5-turbo"
+      ai_model: process.env.XAI_API_KEY ? "grok-3" : "gpt-3.5-turbo"
     });
 
   } catch (error) {
