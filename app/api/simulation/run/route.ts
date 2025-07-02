@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  project: "proj_YEHAcnTG1MxkETwqRsA3YK4a"
-
+// Initialize Grok client using OpenAI SDK (since Grok API is OpenAI-compatible)
+const grok = new OpenAI({
+  apiKey: process.env.XAI_API_KEY,
+  baseURL: 'https://api.x.ai/v1', // Grok API endpoint
 });
 
 interface Persona {
@@ -161,9 +160,9 @@ export async function POST(request: NextRequest) {
     const body: SimulationRequest = await request.json();
     const { personas, scenario, timeline_scope, speed } = body;
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.XAI_API_KEY) {
       return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
+        { error: 'Grok API key not configured' },
         { status: 500 }
       );
     }
@@ -184,12 +183,12 @@ export async function POST(request: NextRequest) {
           
           console.log(`Running simulation for ${persona.name} - Step ${stepCounter}`);
           
-          const completion = await openai.chat.completions.create({
-            model: "gpt-4o-2024-08-06",
+          const completion = await grok.chat.completions.create({
+            model: "grok-grok-3-latest", // Use Grok model
             messages: [
               {
                 role: "system",
-                content: "You are a behavioral simulation system. Respond only with valid JSON matching the requested format. Stay in character as the specified persona."
+                content: "You are a behavioral simulation system. Respond only with valid JSON matching the requested format. Stay in character as the specified persona. Be realistic and consider the persona's background when making decisions."
               },
               {
                 role: "user",
@@ -197,13 +196,13 @@ export async function POST(request: NextRequest) {
               }
             ],
             temperature: 0.7,
-            max_tokens: 500,
+            max_tokens: 2000,
           });
 
           const response = completion.choices[0]?.message?.content;
           
           if (!response) {
-            throw new Error('No response from OpenAI');
+            throw new Error('No response from Grok');
           }
 
           // Parse the JSON response
@@ -211,7 +210,7 @@ export async function POST(request: NextRequest) {
           try {
             parsedResponse = JSON.parse(response);
           } catch (parseError) {
-            console.error('Failed to parse OpenAI response:', response);
+            console.error('Failed to parse Grok response:', response);
             // Fallback response if JSON parsing fails
             parsedResponse = {
               chosen_action: "Unable to parse response",
@@ -278,7 +277,8 @@ export async function POST(request: NextRequest) {
       success: true,
       outputs: simulationOutputs,
       metrics: metrics,
-      scenario_used: activeScenario.title
+      scenario_used: activeScenario.title,
+      ai_model: "grok-beta"
     });
 
   } catch (error) {
