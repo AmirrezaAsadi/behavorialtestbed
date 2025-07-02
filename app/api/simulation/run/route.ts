@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
           console.log(`Running simulation for ${persona.name} - Step ${stepCounter}`);
           
           const completion = await grok.chat.completions.create({
-            model: "grok-grok-3-latest", // Use Grok model
+            model: "grok-3", // Use Grok model
             messages: [
               {
                 role: "system",
