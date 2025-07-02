@@ -4,6 +4,8 @@ import OpenAI from 'openai';
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  project: "proj_YEHAcnTG1MxkETwqRsA3YK4a"
+
 });
 
 interface Persona {
