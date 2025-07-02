@@ -416,6 +416,30 @@ const SciFiPersonaLab = () => {
     </HolographicPanel>
   );
 
+  const ScenarioBuilder = () => {
+    const addTask = () => {
+      setNewScenario(prev => ({
+        ...prev,
+        tasks: [...prev.tasks, { 
+          id: Date.now(), 
+          name: '', 
+          description: '', 
+          is_critical: false,
+          security_implications: [] 
+        }]
+      }));
+    };
+
+    const updateTask = (index, field, value) => {
+      setNewScenario(prev => ({
+        ...prev,
+        tasks: prev.tasks.map((task, i) => 
+          i === index ? { ...task, [field]: value } : task
+        )
+      }));
+    };
+
+
   const PersonaEditor = () => {
     if (!editingPersona) return null;
 
