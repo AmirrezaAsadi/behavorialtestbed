@@ -1,7 +1,104 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, FastForward, Clock, Calendar, Users, TrendingUp, AlertTriangle, CheckCircle, Zap, Edit, Plus, Save, X, Settings } from 'lucide-react';
+
+// Simple SVG icons to replace lucide-react
+const Icons = {
+  Play: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <polygon points="5,3 19,12 5,21"></polygon>
+    </svg>
+  ),
+  Pause: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="6" y="4" width="4" height="16"></rect>
+      <rect x="14" y="4" width="4" height="16"></rect>
+    </svg>
+  ),
+  FastForward: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <polygon points="13,19 22,12 13,5"></polygon>
+      <polygon points="2,19 11,12 2,5"></polygon>
+    </svg>
+  ),
+  Users: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+      <circle cx="9" cy="7" r="4"></circle>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>
+  ),
+  Settings: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  ),
+  Edit: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+      <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3l-9.5 9.5-5 1 1-5 9.5-9.5z"></path>
+    </svg>
+  ),
+  Plus: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  ),
+  X: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  ),
+  Save: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+      <polyline points="17,21 17,13 7,13 7,21"></polyline>
+      <polyline points="7,3 7,8 15,8"></polyline>
+    </svg>
+  ),
+  Zap: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="13,2 3,14 12,14 11,22 21,10 12,10"></polygon>
+    </svg>
+  ),
+  TrendingUp: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="23,6 13.5,15.5 8.5,10.5 1,18"></polyline>
+      <polyline points="17,6 23,6 23,12"></polyline>
+    </svg>
+  ),
+  CheckCircle: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+      <polyline points="22,4 12,14.01 9,11.01"></polyline>
+    </svg>
+  ),
+  Clock: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polyline points="12,6 12,12 16,14"></polyline>
+    </svg>
+  ),
+  Calendar: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>
+  ),
+  AlertTriangle: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+  )
+};
 
 // Types
 interface Persona {
@@ -83,49 +180,45 @@ const SciFiPersonaLab = () => {
   const matrixRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    // Animated matrix background
+    // Animated matrix background - FIXED VERSION
     const canvas = matrixRef.current;
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    
+    // Store dimensions to avoid null checks later
+    const canvasWidth = window.innerWidth;
+    const canvasHeight = window.innerHeight;
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
 
     const matrix = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}";
     const matrixArray = matrix.split("");
     const fontSize = 10;
-    let columns = Math.floor(canvas.width / fontSize);
-    let drops: number[] = [];
+    const columns = canvasWidth / fontSize;
+    const drops: number[] = [];
 
-    function initializeDrops() {
-      columns = Math.floor(canvas.width / fontSize);
-      drops = [];
-      for (let x = 0; x < columns; x++) {
-        drops[x] = 1;
-      }
+    for (let x = 0; x < columns; x++) {
+      drops[x] = 1;
     }
 
-    initializeDrops();
-
     function draw() {
+      // Double check that ctx is still available
+      if (!ctx) return;
+      
       ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      
       ctx.fillStyle = '#00ff41';
       ctx.font = fontSize + 'px monospace';
 
       for (let i = 0; i < drops.length; i++) {
         const text = matrixArray[Math.floor(Math.random() * matrixArray.length)];
         ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+        
+        if (drops[i] * fontSize > canvasHeight && Math.random() > 0.975) {
           drops[i] = 0;
         }
         drops[i]++;
@@ -133,19 +226,7 @@ const SciFiPersonaLab = () => {
     }
 
     const interval = setInterval(draw, 35);
-
-    // Re-initialize drops on resize
-    function handleResize() {
-      resizeCanvas();
-      initializeDrops();
-    }
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('resize', resizeCanvas);
-    };
+    return () => clearInterval(interval);
   }, []);
 
   const [personas, setPersonas] = useState<Persona[]>([
@@ -247,8 +328,8 @@ const SciFiPersonaLab = () => {
 
   // API functions
   const runSimulation = async () => {
-    if (selectedPersonas.length === 0 || !activeScenario) {
-      alert('Please select personas and a scenario first');
+    if (selectedPersonas.length === 0) {
+      alert('Please select personas first');
       return;
     }
 
@@ -263,7 +344,7 @@ const SciFiPersonaLab = () => {
         },
         body: JSON.stringify({
           personas: selectedPersonas,
-          scenario: activeScenario,
+          scenario: activeScenario || null, // Use default if no scenario selected
           timeline_scope: timelineScope,
           speed: speed
         }),
@@ -281,6 +362,155 @@ const SciFiPersonaLab = () => {
     } finally {
       setIsRunning(false);
     }
+  };
+
+  // Persona Editor Modal
+  const PersonaEditor = () => {
+    if (!editingPersona) return null;
+
+    const updatePersona = (field: string, value: any) => {
+      if (!editingPersona) return;
+      setEditingPersona({ ...editingPersona, [field]: value });
+    };
+
+    const updateDemographics = (field: string, value: any) => {
+      if (!editingPersona) return;
+      setEditingPersona({
+        ...editingPersona,
+        demographics: { ...editingPersona.demographics, [field]: value }
+      });
+    };
+
+    const updateSkills = (field: string, value: number) => {
+      if (!editingPersona) return;
+      setEditingPersona({
+        ...editingPersona,
+        skills: { ...editingPersona.skills, [field]: value }
+      });
+    };
+
+    const savePersona = () => {
+      if (!editingPersona) return;
+      
+      const existingIndex = personas.findIndex(p => p.id === editingPersona.id);
+      if (existingIndex >= 0) {
+        // Update existing
+        const updatedPersonas = [...personas];
+        updatedPersonas[existingIndex] = editingPersona;
+        setPersonas(updatedPersonas);
+      } else {
+        // Add new
+        setPersonas([...personas, editingPersona]);
+      }
+      
+      setEditingPersona(null);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <HolographicPanel className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div className="text-cyan-400 font-mono font-bold text-lg">PERSONA EDITOR</div>
+              <button 
+                onClick={() => setEditingPersona(null)}
+                className="text-red-400 hover:text-red-300"
+              >
+                <Icons.X />
+              </button>
+            </div>
+
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-gray-400 font-mono text-xs block mb-1">NAME</label>
+                <input
+                  type="text"
+                  value={editingPersona.name}
+                  onChange={(e) => updatePersona('name', e.target.value)}
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-gray-400 font-mono text-xs block mb-1">TYPE</label>
+                <select
+                  value={editingPersona.type}
+                  onChange={(e) => updatePersona('type', e.target.value)}
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                >
+                  <option value="THREAT_ACTOR">THREAT_ACTOR</option>
+                  <option value="SECURITY_PRACTITIONER">SECURITY_PRACTITIONER</option>
+                  <option value="REGULAR_USER">REGULAR_USER</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Demographics */}
+            <div className="space-y-4">
+              <div className="text-cyan-400 font-mono font-bold text-sm">DEMOGRAPHICS</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-400 font-mono text-xs block mb-1">AGE</label>
+                  <input
+                    type="number"
+                    value={editingPersona.demographics.age}
+                    onChange={(e) => updateDemographics('age', parseInt(e.target.value))}
+                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-400 font-mono text-xs block mb-1">LOCATION</label>
+                  <input
+                    type="text"
+                    value={editingPersona.demographics.location}
+                    onChange={(e) => updateDemographics('location', e.target.value)}
+                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Skills */}
+            <div className="space-y-4">
+              <div className="text-cyan-400 font-mono font-bold text-sm">SKILLS (1-5)</div>
+              {Object.entries(editingPersona.skills).map(([skill, level]) => (
+                <div key={skill}>
+                  <label className="text-gray-400 font-mono text-xs block mb-1">
+                    {skill.replace('_', ' ').toUpperCase()}
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={level}
+                    onChange={(e) => updateSkills(skill, parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-700 rounded appearance-none slider"
+                  />
+                  <div className="text-cyan-400 font-mono text-xs mt-1">{level}/5</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Save Button */}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEditingPersona(null)}
+                className="px-4 py-2 bg-gray-600/20 border border-gray-500 text-gray-400 rounded font-mono text-sm"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={savePersona}
+                className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm flex items-center gap-2"
+              >
+                <Icons.Save />
+                SAVE PERSONA
+              </button>
+            </div>
+          </div>
+        </HolographicPanel>
+      </div>
+    );
   };
 
   const HolographicPanel: React.FC<{
@@ -326,7 +556,7 @@ const SciFiPersonaLab = () => {
               onClick={(e) => { e.stopPropagation(); onEdit(persona); }}
               className="text-yellow-400 hover:text-yellow-300"
             >
-              <Edit size={14} />
+              <Icons.Edit />
             </button>
             <input 
               type="checkbox"
@@ -371,7 +601,7 @@ const SciFiPersonaLab = () => {
     return (
       <HolographicPanel glow className="space-y-4">
         <div className="text-cyan-400 font-mono font-bold text-sm flex items-center gap-2">
-          <Zap size={16} />
+          <Icons.Zap />
           SIMULATION CONTROL MATRIX
         </div>
         
@@ -402,9 +632,9 @@ const SciFiPersonaLab = () => {
         <div className="grid grid-cols-3 gap-2">
           <button 
             onClick={runSimulation}
-            disabled={selectedPersonas.length === 0 || !activeScenario}
+            disabled={selectedPersonas.length === 0}
             className={`px-3 py-2 rounded font-mono text-xs font-bold border transition-all ${
-              selectedPersonas.length === 0 || !activeScenario
+              selectedPersonas.length === 0
                 ? 'border-gray-600 bg-gray-600/20 text-gray-500 cursor-not-allowed'
                 : isRunning 
                   ? 'border-red-500 bg-red-500/20 text-red-400 hover:bg-red-500/30' 
@@ -462,9 +692,9 @@ const SciFiPersonaLab = () => {
   };
 
   const tabs = [
-    { id: 'personas', label: 'PERSONAS', icon: Users },
-    { id: 'scenarios', label: 'SCENARIOS', icon: Settings },
-    { id: 'simulation', label: 'SIMULATION', icon: Play }
+    { id: 'personas', label: 'PERSONAS', icon: Icons.Users },
+    { id: 'scenarios', label: 'SCENARIOS', icon: Icons.Settings },
+    { id: 'simulation', label: 'SIMULATION', icon: Icons.Play }
   ];
 
   return (
@@ -474,6 +704,9 @@ const SciFiPersonaLab = () => {
         ref={matrixRef}
         className="fixed inset-0 opacity-10 pointer-events-none"
       />
+      
+      {/* Persona Editor Modal */}
+      <PersonaEditor />
       
       {/* Main Interface */}
       <div className="relative z-10 p-6 space-y-6">
@@ -503,7 +736,7 @@ const SciFiPersonaLab = () => {
                       : 'text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10'
                   }`}
                 >
-                  <Icon size={16} />
+                  <Icon />
                   {tab.label}
                 </button>
               );
@@ -528,9 +761,9 @@ const SciFiPersonaLab = () => {
                   motivation: '',
                   position: { x: 50, y: 50, z: 20 }
                 })}
-                className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm"
+                className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm flex items-center gap-2"
               >
-                <Plus size={16} className="inline mr-2" />
+                <Icons.Plus />
                 CREATE PERSONA
               </button>
             </div>
@@ -559,12 +792,23 @@ const SciFiPersonaLab = () => {
           <div className="space-y-6">
             <div className="text-cyan-400 font-mono font-bold text-lg">SCENARIO BUILDER</div>
             <div className="text-gray-400 font-mono text-sm">
-              Select or create scenarios for persona testing
+              Built-in phishing email scenario ready for testing. More scenarios coming soon.
             </div>
             
+            <HolographicPanel>
+              <div className="text-cyan-400 font-mono font-bold text-sm mb-4">DEFAULT SCENARIO</div>
+              <div className="border border-cyan-500/30 rounded p-3 bg-cyan-500/10">
+                <div className="text-cyan-400 font-mono font-bold text-sm">Email Phishing Response</div>
+                <div className="text-gray-400 font-mono text-xs mt-1">Employee receives suspicious email and must decide how to respond</div>
+                <div className="text-yellow-400 font-mono text-xs mt-2">
+                  2 STEPS | EMAIL_SYSTEM
+                </div>
+              </div>
+            </HolographicPanel>
+
             {scenarios.length > 0 && (
               <HolographicPanel>
-                <div className="text-cyan-400 font-mono font-bold text-sm mb-4">AVAILABLE SCENARIOS</div>
+                <div className="text-cyan-400 font-mono font-bold text-sm mb-4">CUSTOM SCENARIOS</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {scenarios.map(scenario => (
                     <div 
@@ -613,7 +857,10 @@ const SciFiPersonaLab = () => {
 
               {/* Simulation Output */}
               <HolographicPanel>
-                <div className="text-cyan-400 font-mono font-bold text-sm mb-4">SIMULATION OUTPUT</div>
+                <div className="text-cyan-400 font-mono font-bold text-sm mb-4 flex items-center gap-2">
+                  <Icons.CheckCircle />
+                  SIMULATION OUTPUT
+                </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {simulationOutputs.length === 0 ? (
                     <div className="text-gray-400 font-mono text-sm text-center py-8">
