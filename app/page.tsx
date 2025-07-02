@@ -123,8 +123,8 @@ const SciFiPersonaLab = () => {
   const [simulationOutputs, setSimulationOutputs] = useState<SimulationOutput[]>([]);
   const matrixRef = useRef<HTMLCanvasElement>(null);
 
-  // Replace the useEffect with matrix animation in your app/page.tsx
-// Around line 130-180
+ // Replace the entire useEffect block for matrix animation in your page.tsx
+// This should be around line 130-180
 
 useEffect(() => {
   // Animated matrix background
@@ -132,15 +132,19 @@ useEffect(() => {
   if (!canvas) return;
   
   const ctx = canvas.getContext('2d');
-  if (!ctx) return; // This prevents the TypeScript error
+  if (!ctx) return;
   
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  // Store canvas dimensions to avoid null checks later
+  const canvasWidth = window.innerWidth;
+  const canvasHeight = window.innerHeight;
+  
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
 
   const matrix = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}";
   const matrixArray = matrix.split("");
   const fontSize = 10;
-  const columns = canvas.width / fontSize;
+  const columns = canvasWidth / fontSize;
   const drops: number[] = [];
 
   for (let x = 0; x < columns; x++) {
@@ -148,11 +152,11 @@ useEffect(() => {
   }
 
   function draw() {
-    // Now TypeScript knows ctx is not null
-    if (!ctx) return;
+    // Double check that ctx is still available
+    if (!ctx || !canvas) return;
     
     ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     
     ctx.fillStyle = '#00ff41';
     ctx.font = fontSize + 'px monospace';
@@ -161,7 +165,7 @@ useEffect(() => {
       const text = matrixArray[Math.floor(Math.random() * matrixArray.length)];
       ctx.fillText(text, i * fontSize, drops[i] * fontSize);
       
-      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+      if (drops[i] * fontSize > canvasHeight && Math.random() > 0.975) {
         drops[i] = 0;
       }
       drops[i]++;
