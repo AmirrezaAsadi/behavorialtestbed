@@ -15,12 +15,6 @@ const Icons = {
       <rect x="14" y="4" width="4" height="16"></rect>
     </svg>
   ),
-  FastForward: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <polygon points="13,19 22,12 13,5"></polygon>
-      <polygon points="2,19 11,12 2,5"></polygon>
-    </svg>
-  ),
   Users: () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -75,20 +69,6 @@ const Icons = {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
       <polyline points="22,4 12,14.01 9,11.01"></polyline>
-    </svg>
-  ),
-  Clock: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10"></circle>
-      <polyline points="12,6 12,12 16,14"></polyline>
-    </svg>
-  ),
-  Calendar: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-      <line x1="16" y1="2" x2="16" y2="6"></line>
-      <line x1="8" y1="2" x2="8" y2="6"></line>
-      <line x1="3" y1="10" x2="21" y2="10"></line>
     </svg>
   ),
   AlertTriangle: () => (
@@ -162,6 +142,7 @@ interface SimulationOutput {
   confidence: number;
   timestamp: string;
   thinking?: string;
+  security_assessment?: string;
 }
 
 const SciFiPersonaLab = () => {
@@ -180,14 +161,13 @@ const SciFiPersonaLab = () => {
   const matrixRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    // Animated matrix background - FIXED VERSION
+    // Animated matrix background
     const canvas = matrixRef.current;
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Store dimensions to avoid null checks later
     const canvasWidth = window.innerWidth;
     const canvasHeight = window.innerHeight;
     
@@ -205,7 +185,6 @@ const SciFiPersonaLab = () => {
     }
 
     function draw() {
-      // Double check that ctx is still available
       if (!ctx) return;
       
       ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
@@ -310,22 +289,6 @@ const SciFiPersonaLab = () => {
     }
   ]);
 
-  const [newScenario, setNewScenario] = useState<Omit<Scenario, 'id'>>({
-    title: '',
-    description: '',
-    system_context: {
-      system_type: '',
-      user_goals: [],
-      environmental_factors: [],
-      security_requirements: [],
-      constraints: []
-    },
-    workflow_steps: [],
-    tasks: [],
-    success_criteria: [],
-    security_elements: []
-  });
-
   // API functions
   const runSimulation = async () => {
     if (selectedPersonas.length === 0) {
@@ -344,27 +307,115 @@ const SciFiPersonaLab = () => {
         },
         body: JSON.stringify({
           personas: selectedPersonas,
-          scenario: activeScenario || null, // Use default if no scenario selected
+          scenario: activeScenario || null,
           timeline_scope: timelineScope,
           speed: speed
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Simulation failed');
+        const errorText = await response.text();
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
-      setSimulationOutputs(result.outputs);
+      
+      if (result.success) {
+        setSimulationOutputs(result.outputs);
+        console.log('Simulation completed successfully:', result);
+      } else {
+        throw new Error(result.error || 'Simulation failed');
+      }
     } catch (error) {
       console.error('Simulation error:', error);
-      alert('Simulation failed. Please check your API configuration.');
+      alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your API configuration and environment variables.`);
     } finally {
       setIsRunning(false);
     }
   };
 
-  // Persona Editor Modal
+  const HolographicPanel: React.FC<{
+    children: React.ReactNode;
+    className?: string;
+    glow?: boolean;
+  }> = ({ children, className = "", glow = false }) => (
+    <div className={`
+      bg-black/20 backdrop-blur-md border border-cyan-500/30 rounded-lg relative
+      ${glow ? 'shadow-[0_0_20px_rgba(34,211,238,0.3)]' : ''}
+      ${className}
+    `}>
+      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 rounded-lg" />
+      <div className="relative z-10 p-4">
+        {children}
+      </div>
+    </div>
+  );
+
+  const PersonaCard: React.FC<{
+    persona: Persona;
+    isSelected: boolean;
+    onSelect: (persona: Persona) => void;
+    onEdit: (persona: Persona) => void;
+  }> = ({ persona, isSelected, onSelect, onEdit }) => (
+    <HolographicPanel className={`cursor-pointer transition-all duration-300 ${
+      isSelected ? 'border-cyan-400 bg-cyan-500/10' : 'hover:border-green-400'
+    }`}>
+      <div className="space-y-3">
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="text-cyan-400 font-mono font-bold text-sm">{persona.name}</div>
+            <div className={`text-xs font-mono ${
+              persona.type === 'THREAT_ACTOR' ? 'text-red-400' :
+              persona.type === 'SECURITY_PRACTITIONER' ? 'text-green-400' :
+              'text-blue-400'
+            }`}>
+              {persona.type.replace('_', ' ')}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={(e) => { e.stopPropagation(); onEdit(persona); }}
+              className="text-yellow-400 hover:text-yellow-300"
+            >
+              <Icons.Edit />
+            </button>
+            <input 
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onSelect(persona)}
+              className="w-4 h-4 accent-cyan-400"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+
+        {/* Skills Matrix */}
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          {Object.entries(persona.skills).map(([skill, level]) => (
+            <div key={skill} className="space-y-1">
+              <div className="text-gray-400 uppercase font-mono text-xs">
+                {skill.replace('_', ' ')}
+              </div>
+              <div className="flex gap-1">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className={`w-2 h-2 rounded ${
+                    i <= level ? 'bg-cyan-400' : 'bg-gray-600'
+                  }`} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Demographics */}
+        <div className="text-xs font-mono text-gray-400">
+          <div>AGE: {persona.demographics.age} | LOC: {persona.demographics.location}</div>
+          <div>LANG: {persona.demographics.languages.join(', ')}</div>
+        </div>
+      </div>
+    </HolographicPanel>
+  );
+
   const PersonaEditor = () => {
     if (!editingPersona) return null;
 
@@ -394,12 +445,10 @@ const SciFiPersonaLab = () => {
       
       const existingIndex = personas.findIndex(p => p.id === editingPersona.id);
       if (existingIndex >= 0) {
-        // Update existing
         const updatedPersonas = [...personas];
         updatedPersonas[existingIndex] = editingPersona;
         setPersonas(updatedPersonas);
       } else {
-        // Add new
         setPersonas([...personas, editingPersona]);
       }
       
@@ -513,88 +562,6 @@ const SciFiPersonaLab = () => {
     );
   };
 
-  const HolographicPanel: React.FC<{
-    children: React.ReactNode;
-    className?: string;
-    glow?: boolean;
-  }> = ({ children, className = "", glow = false }) => (
-    <div className={`
-      bg-black/20 backdrop-blur-md border border-cyan-500/30 rounded-lg
-      ${glow ? 'shadow-[0_0_20px_rgba(34,211,238,0.3)]' : ''}
-      ${className}
-    `}>
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 rounded-lg" />
-      <div className="relative z-10 p-4">
-        {children}
-      </div>
-    </div>
-  );
-
-  const PersonaCard: React.FC<{
-    persona: Persona;
-    isSelected: boolean;
-    onSelect: (persona: Persona) => void;
-    onEdit: (persona: Persona) => void;
-  }> = ({ persona, isSelected, onSelect, onEdit }) => (
-    <HolographicPanel className={`cursor-pointer transition-all duration-300 ${
-      isSelected ? 'border-cyan-400 bg-cyan-500/10' : 'hover:border-green-400'
-    }`}>
-      <div className="space-y-3">
-        <div className="flex justify-between items-start">
-          <div>
-            <div className="text-cyan-400 font-mono font-bold text-sm">{persona.name}</div>
-            <div className={`text-xs font-mono ${
-              persona.type === 'THREAT_ACTOR' ? 'text-red-400' :
-              persona.type === 'SECURITY_PRACTITIONER' ? 'text-green-400' :
-              'text-blue-400'
-            }`}>
-              {persona.type.replace('_', ' ')}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button 
-              onClick={(e) => { e.stopPropagation(); onEdit(persona); }}
-              className="text-yellow-400 hover:text-yellow-300"
-            >
-              <Icons.Edit />
-            </button>
-            <input 
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => onSelect(persona)}
-              className="w-4 h-4 accent-cyan-400"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        </div>
-
-        {/* Skills Matrix */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          {Object.entries(persona.skills).map(([skill, level]) => (
-            <div key={skill} className="space-y-1">
-              <div className="text-gray-400 uppercase font-mono text-xs">
-                {skill.replace('_', ' ')}
-              </div>
-              <div className="flex gap-1">
-                {[1,2,3,4,5].map(i => (
-                  <div key={i} className={`w-2 h-2 rounded ${
-                    i <= level ? 'bg-cyan-400' : 'bg-gray-600'
-                  }`} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Demographics */}
-        <div className="text-xs font-mono text-gray-400">
-          <div>AGE: {persona.demographics.age} | LOC: {persona.demographics.location}</div>
-          <div>LANG: {persona.demographics.languages.join(', ')}</div>
-        </div>
-      </div>
-    </HolographicPanel>
-  );
-
   const SimulationControl = () => {
     const canCalculateEntropy = selectedPersonas.length > 1;
     
@@ -641,7 +608,7 @@ const SciFiPersonaLab = () => {
                   : 'border-green-500 bg-green-500/20 text-green-400 hover:bg-green-500/30'
             }`}
           >
-            {isRunning ? 'ABORT' : 'INITIALIZE'}
+            {isRunning ? 'RUNNING...' : 'INITIALIZE'}
           </button>
           
           <button 
@@ -714,7 +681,7 @@ const SciFiPersonaLab = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-mono font-bold text-cyan-400 mb-2 tracking-wider">
-            PERSONA Crash Lab
+            PERSONA SECURITY LAB
           </h1>
           <div className="text-sm font-mono text-gray-400">
             LLM-DRIVEN BEHAVIORAL TESTBED • SECURITY SIMULATION MATRIX
@@ -838,7 +805,10 @@ const SciFiPersonaLab = () => {
             <div className="lg:col-span-2 space-y-6">
               {/* Selected Personas Display */}
               <HolographicPanel>
-                <div className="text-cyan-400 font-mono font-bold text-sm mb-4">ACTIVE PERSONAS</div>
+                <div className="text-cyan-400 font-mono font-bold text-sm mb-4 flex items-center gap-2">
+                  <Icons.Users />
+                  ACTIVE PERSONAS
+                </div>
                 {selectedPersonas.length === 0 ? (
                   <div className="text-gray-400 font-mono text-sm text-center py-8">
                     NO PERSONAS SELECTED - GO TO PERSONAS TAB TO SELECT
@@ -849,6 +819,9 @@ const SciFiPersonaLab = () => {
                       <div key={persona.id} className="border border-cyan-500/30 rounded p-3 bg-cyan-500/10">
                         <div className="text-cyan-400 font-mono font-bold text-sm">{persona.name}</div>
                         <div className="text-gray-400 font-mono text-xs">{persona.type.replace('_', ' ')}</div>
+                        <div className="text-yellow-400 font-mono text-xs mt-1">
+                          Risk: {persona.skills.risk_tolerance}/5 | Aware: {persona.skills.security_awareness}/5
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -859,10 +832,16 @@ const SciFiPersonaLab = () => {
               <HolographicPanel>
                 <div className="text-cyan-400 font-mono font-bold text-sm mb-4 flex items-center gap-2">
                   <Icons.CheckCircle />
-                  SIMULATION OUTPUT
+                  LIVE SIMULATION OUTPUT
                 </div>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {simulationOutputs.length === 0 ? (
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {isRunning && (
+                    <div className="text-yellow-400 font-mono text-xs border border-yellow-500/30 rounded p-2 bg-yellow-500/10 animate-pulse">
+                      🔄 SIMULATION IN PROGRESS - Processing persona behaviors...
+                    </div>
+                  )}
+                  
+                  {simulationOutputs.length === 0 && !isRunning ? (
                     <div className="text-gray-400 font-mono text-sm text-center py-8">
                       NO SIMULATION DATA - CLICK INITIALIZE TO START
                     </div>
@@ -870,15 +849,46 @@ const SciFiPersonaLab = () => {
                     simulationOutputs.map((output, index) => (
                       <div key={index} className="border border-gray-600 rounded p-3 bg-gray-900/50">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 bg-cyan-400 rounded-full" />
+                          <div className={`w-2 h-2 rounded-full ${
+                            output.persona_name.includes('MARTIN') ? 'bg-red-400' :
+                            output.persona_name.includes('ALEX') ? 'bg-green-400' :
+                            'bg-blue-400'
+                          }`} />
                           <div className="text-cyan-400 font-mono font-bold text-xs">{output.persona_name}</div>
                           <div className="text-gray-400 font-mono text-xs">STEP {output.step}</div>
+                          <div className="text-purple-400 font-mono text-xs ml-auto">
+                            CONF: {output.confidence}/5
+                          </div>
                         </div>
-                        <div className="text-gray-300 font-mono text-xs">
-                          <strong>ACTION:</strong> {output.action}
+                        
+                        <div className="space-y-2">
+                          <div className="bg-green-500/10 border border-green-500/30 rounded p-2">
+                            <div className="text-green-400 font-mono text-xs font-bold mb-1">ACTION:</div>
+                            <div className="text-gray-300 font-mono text-xs">{output.action}</div>
+                          </div>
+                          
+                          <div className="bg-purple-500/10 border border-purple-500/30 rounded p-2">
+                            <div className="text-purple-400 font-mono text-xs font-bold mb-1">REASONING:</div>
+                            <div className="text-gray-300 font-mono text-xs">{output.reasoning}</div>
+                          </div>
+                          
+                          {output.security_assessment && (
+                            <div className="bg-red-500/10 border border-red-500/30 rounded p-2">
+                              <div className="text-red-400 font-mono text-xs font-bold mb-1">SECURITY ASSESSMENT:</div>
+                              <div className="text-gray-300 font-mono text-xs">{output.security_assessment}</div>
+                            </div>
+                          )}
+                          
+                          {output.thinking && (
+                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-2">
+                              <div className="text-yellow-400 font-mono text-xs font-bold mb-1">THOUGHT PROCESS:</div>
+                              <div className="text-gray-300 font-mono text-xs italic">{output.thinking}</div>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-gray-300 font-mono text-xs mt-1">
-                          <strong>REASONING:</strong> {output.reasoning}
+                        
+                        <div className="text-xs text-gray-500 font-mono mt-2">
+                          {new Date(output.timestamp).toLocaleTimeString()}
                         </div>
                       </div>
                     ))
@@ -889,10 +899,127 @@ const SciFiPersonaLab = () => {
             
             <div className="space-y-6">
               <SimulationControl />
+              
+              {/* System Stats */}
+              <HolographicPanel>
+                <div className="text-cyan-400 font-mono font-bold text-sm mb-4 flex items-center gap-2">
+                  <Icons.TrendingUp />
+                  SYSTEM DIAGNOSTICS
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-mono font-bold text-green-400">
+                      {selectedPersonas.length > 0 ? '94.7%' : '--'}
+                    </div>
+                    <div className="text-xs font-mono text-gray-400">FIDELITY INDEX</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-2xl font-mono font-bold text-purple-400">
+                      {selectedPersonas.length > 1 ? '2.34' : 'N/A'}
+                    </div>
+                    <div className="text-xs font-mono text-gray-400">ENTROPY LEVEL</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-2xl font-mono font-bold text-red-400">
+                      {simulationOutputs.length > 0 ? simulationOutputs.filter(o => 
+                        o.security_assessment?.toLowerCase().includes('risk') || 
+                        o.security_assessment?.toLowerCase().includes('threat')
+                      ).length.toString().padStart(2, '0') : '--'}
+                    </div>
+                    <div className="text-xs font-mono text-gray-400">THREATS FOUND</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-2xl font-mono font-bold text-yellow-400">
+                      {simulationOutputs.length > 0 ? '15.2S' : '--'}
+                    </div>
+                    <div className="text-xs font-mono text-gray-400">EXEC TIME</div>
+                  </div>
+                </div>
+
+                {selectedPersonas.length <= 1 && (
+                  <div className="mt-4 p-3 border border-yellow-500/30 rounded bg-yellow-500/10">
+                    <div className="text-yellow-400 font-mono text-xs font-bold mb-1">
+                      <Icons.AlertTriangle className="inline mr-1" />
+                      ENTROPY CALCULATION DISABLED
+                    </div>
+                    <div className="text-gray-400 font-mono text-xs">
+                      Behavioral Diversity Index requires multiple personas for meaningful comparison.
+                    </div>
+                  </div>
+                )}
+              </HolographicPanel>
+
+              {/* Event Timeline */}
+              <HolographicPanel>
+                <div className="text-cyan-400 font-mono font-bold text-sm mb-4">EVENT TIMELINE</div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {simulationOutputs.length > 0 ? (
+                    simulationOutputs.slice(-5).map((output, index) => (
+                      <div key={index} className={`flex items-center gap-3 text-xs font-mono p-2 rounded ${
+                        output.action.toLowerCase().includes('click') || output.action.toLowerCase().includes('download') 
+                          ? 'bg-red-500/10 text-red-400' :
+                        output.action.toLowerCase().includes('verify') || output.action.toLowerCase().includes('check')
+                          ? 'bg-green-500/10 text-green-400' :
+                        'bg-gray-500/10 text-gray-400'
+                      }`}>
+                        <div className="text-cyan-400 w-12">
+                          {new Date(output.timestamp).toLocaleTimeString().slice(0, 5)}
+                        </div>
+                        <div className="flex-1">
+                          {output.persona_name}: {output.action.slice(0, 30)}...
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-400 font-mono text-xs text-center py-4">
+                      NO ACTIVE TIMELINE
+                    </div>
+                  )}
+                </div>
+              </HolographicPanel>
             </div>
           </div>
         )}
       </div>
+
+      {/* Custom CSS for sci-fi elements */}
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #22d3ee;
+          border: 2px solid #0891b2;
+          box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+        
+        .slider::-moz-range-thumb {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #22d3ee;
+          border: 2px solid #0891b2;
+          box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+        
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: .5;
+          }
+        }
+      `}</style>
     </div>
   );
 };

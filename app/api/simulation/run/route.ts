@@ -1,11 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
 
-// Initialize Grok client using OpenAI SDK (since Grok API is OpenAI-compatible)
-const grok = new OpenAI({
-  apiKey: process.env.XAI_API_KEY,
-  baseURL: 'https://api.x.ai/v1', // Grok API endpoint
-});
+// Initialize the AI client - you can switch between different providers
+let aiClient: any = null;
+
+// Try to initialize OpenAI-compatible client (Grok or OpenAI)
+async function initializeAIClient() {
+  if (aiClient) return aiClient;
+  
+  try {
+    const { default: OpenAI } = await import('openai');
+    
+    // Check for Grok API key first
+    if (process.env.XAI_API_KEY) {
+      aiClient = new OpenAI({
+        apiKey: process.env.XAI_API_KEY,
+        baseURL: 'https://api.x.ai/v1',
+      });
+      console.log('Using Grok AI (xAI) for simulations');
+      return aiClient;
+    }
+    
+    // Fallback to OpenAI if available
+    if (process.env.OPENAI_API_KEY) {
+      aiClient = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+      console.log('Using OpenAI for simulations');
+      return aiClient;
+    }
+    
+    throw new Error('No AI API key found');
+  } catch (error) {
+    console.error('Failed to initialize AI client:', error);
+    return null;
+  }
+}
 
 interface Persona {
   id: string;
@@ -160,9 +189,11 @@ export async function POST(request: NextRequest) {
     const body: SimulationRequest = await request.json();
     const { personas, scenario, timeline_scope, speed } = body;
 
-    if (!process.env.XAI_API_KEY) {
+    // Initialize AI client
+    const client = await initializeAIClient();
+    if (!client) {
       return NextResponse.json(
-        { error: 'Grok API key not configured' },
+        { error: 'AI service not configured. Please set XAI_API_KEY or OPENAI_API_KEY in your environment variables.' },
         { status: 500 }
       );
     }
@@ -183,8 +214,11 @@ export async function POST(request: NextRequest) {
           
           console.log(`Running simulation for ${persona.name} - Step ${stepCounter}`);
           
-          const completion = await grok.chat.completions.create({
-            model: "grok-3", // Use Grok model
+          // Determine which model to use
+          const model = process.env.XAI_API_KEY ? "grok-beta" : "gpt-3.5-turbo";
+          
+          const completion = await client.chat.completions.create({
+            model: model,
             messages: [
               {
                 role: "system",
@@ -202,7 +236,7 @@ export async function POST(request: NextRequest) {
           const response = completion.choices[0]?.message?.content;
           
           if (!response) {
-            throw new Error('No response from Grok');
+            throw new Error('No response from AI service');
           }
 
           // Parse the JSON response
@@ -210,7 +244,7 @@ export async function POST(request: NextRequest) {
           try {
             parsedResponse = JSON.parse(response);
           } catch (parseError) {
-            console.error('Failed to parse Grok response:', response);
+            console.error('Failed to parse AI response:', response);
             // Fallback response if JSON parsing fails
             parsedResponse = {
               chosen_action: "Unable to parse response",
@@ -249,9 +283,9 @@ export async function POST(request: NextRequest) {
             persona_id: persona.id,
             persona_name: persona.name,
             step: stepCounter,
-            action: "Error occurred",
-            reasoning: "Simulation error occurred",
-            security_assessment: "Unable to assess",
+            action: "Simulation error occurred",
+            reasoning: `Error: ${stepError instanceof Error ? stepError.message : 'Unknown error'}`,
+            security_assessment: "Unable to assess due to error",
             confidence: 1,
             timestamp: new Date().toISOString(),
             step_title: step.title,
@@ -278,7 +312,7 @@ export async function POST(request: NextRequest) {
       outputs: simulationOutputs,
       metrics: metrics,
       scenario_used: activeScenario.title,
-      ai_model: "grok-beta"
+      ai_model: process.env.XAI_API_KEY ? "grok-beta" : "gpt-3.5-turbo"
     });
 
   } catch (error) {
