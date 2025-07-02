@@ -757,22 +757,37 @@ const SciFiPersonaLab = () => {
 
         {activeTab === 'scenarios' && (
           <div className="space-y-6">
-            <div className="text-cyan-400 font-mono font-bold text-lg">SCENARIO BUILDER</div>
-            <div className="text-gray-400 font-mono text-sm">
-              Built-in phishing email scenario ready for testing. More scenarios coming soon.
+            <div className="flex justify-between items-center">
+              <div className="text-cyan-400 font-mono font-bold text-lg">SCENARIO MANAGEMENT</div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setActiveScenario(null)}
+                  className="px-4 py-2 bg-blue-500/20 border border-blue-500 text-blue-400 rounded font-mono text-sm"
+                >
+                  CREATE NEW
+                </button>
+              </div>
             </div>
-            
+
+            {/* Default Scenario Info */}
             <HolographicPanel>
               <div className="text-cyan-400 font-mono font-bold text-sm mb-4">DEFAULT SCENARIO</div>
               <div className="border border-cyan-500/30 rounded p-3 bg-cyan-500/10">
                 <div className="text-cyan-400 font-mono font-bold text-sm">Email Phishing Response</div>
                 <div className="text-gray-400 font-mono text-xs mt-1">Employee receives suspicious email and must decide how to respond</div>
                 <div className="text-yellow-400 font-mono text-xs mt-2">
-                  2 STEPS | EMAIL_SYSTEM
+                  2 WORKFLOW STEPS | EMAIL_SYSTEM | BUILT-IN
+                </div>
+                <div className="text-green-400 font-mono text-xs mt-1">
+                  ✓ Always available for simulation
                 </div>
               </div>
             </HolographicPanel>
 
+            {/* Scenario Builder */}
+            <ScenarioBuilder />
+
+            {/* Custom Scenarios List */}
             {scenarios.length > 0 && (
               <HolographicPanel>
                 <div className="text-cyan-400 font-mono font-bold text-sm mb-4">CUSTOM SCENARIOS</div>
@@ -787,11 +802,45 @@ const SciFiPersonaLab = () => {
                       }`}
                       onClick={() => setActiveScenario(scenario)}
                     >
-                      <div className="text-cyan-400 font-mono font-bold text-sm">{scenario.title}</div>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="text-cyan-400 font-mono font-bold text-sm">{scenario.title}</div>
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveScenario(scenario);
+                            }}
+                            className="text-yellow-400 hover:text-yellow-300"
+                          >
+                            <Icons.Edit />
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Delete this scenario?')) {
+                                setScenarios(prev => prev.filter(s => s.id !== scenario.id));
+                                if (activeScenario?.id === scenario.id) {
+                                  setActiveScenario(null);
+                                }
+                              }
+                            }}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Icons.X />
+                          </button>
+                        </div>
+                      </div>
+                      
                       <div className="text-gray-400 font-mono text-xs mt-1">{scenario.description}</div>
                       <div className="text-yellow-400 font-mono text-xs mt-2">
-                        {scenario.tasks.length} TASKS | {scenario.system_context.system_type}
+                        {scenario.workflow_steps.length} STEPS | {scenario.tasks.length} TASKS | {scenario.system_context.system_type.toUpperCase()}
                       </div>
+                      
+                      {activeScenario?.id === scenario.id && (
+                        <div className="text-green-400 font-mono text-xs mt-1">
+                          ✓ SELECTED FOR SIMULATION
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
