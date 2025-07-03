@@ -203,7 +203,7 @@ const SciFiPersonaLab = () => {
 
     const matrix = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}";
     const matrixArray = matrix.split("");
-    const fontSize = 10;
+    const fontSize = 20;
     const columns = canvasWidth / fontSize;
     const drops: number[] = [];
 
