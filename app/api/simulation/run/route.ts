@@ -138,7 +138,7 @@ Respond with a JSON object containing:
 function generateSimplePhishingScenario() {
   return {
     id: 1,
-    title: "Email Phishing Response",
+    title: "Email Response",
     description: "Employee receives suspicious email and must decide how to respond",
     system_context: {
       system_type: "email_system"
