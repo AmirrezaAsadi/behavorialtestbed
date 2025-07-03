@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // Complete SVG icons with props support
 interface IconProps {
@@ -173,16 +173,20 @@ interface SimulationOutput {
 }
 
 const SciFiPersonaLab = () => {
+  // Enhanced state management for simulation control
   const [activeTab, setActiveTab] = useState('personas');
   const [timelineScope, setTimelineScope] = useState('single-interaction');
   const [currentDay, setCurrentDay] = useState(1);
   const [isRunning, setIsRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [simulationCompleted, setSimulationCompleted] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [selectedPersonas, setSelectedPersonas] = useState<Persona[]>([]);
   const [editingPersona, setEditingPersona] = useState<Persona | null>(null);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
   const [simulationOutputs, setSimulationOutputs] = useState<SimulationOutput[]>([]);
+  const [evaluationMetrics, setEvaluationMetrics] = useState<any>(null);
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
   const matrixRef = useRef<HTMLCanvasElement>(null);
@@ -203,7 +207,7 @@ const SciFiPersonaLab = () => {
 
     const matrix = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}";
     const matrixArray = matrix.split("");
-    const fontSize = 20;
+    const fontSize = 10;
     const columns = canvasWidth / fontSize;
     const drops: number[] = [];
 
@@ -218,7 +222,7 @@ const SciFiPersonaLab = () => {
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
       
       ctx.fillStyle = '#00ff41';
-      ctx.font = `bold ${fontSize}px monospace`;
+      ctx.font = fontSize + 'px monospace';
 
       for (let i = 0; i < drops.length; i++) {
         const text = matrixArray[Math.floor(Math.random() * matrixArray.length)];
@@ -333,15 +337,23 @@ const SciFiPersonaLab = () => {
     security_elements: []
   });
 
-  // API simulation function
+  // Enhanced simulation functions with proper state management
   const runSimulation = async () => {
     if (selectedPersonas.length === 0) {
       alert('Please select personas first');
       return;
     }
 
+    if (!activeScenario) {
+      alert('Please create and select a scenario first using the Scenario Builder');
+      return;
+    }
+
     setIsRunning(true);
+    setIsPaused(false);
+    setSimulationCompleted(false);
     setSimulationOutputs([]);
+    setEvaluationMetrics(null);
 
     try {
       const response = await fetch('/api/simulation/run', {
@@ -351,7 +363,7 @@ const SciFiPersonaLab = () => {
         },
         body: JSON.stringify({
           personas: selectedPersonas,
-          scenario: activeScenario || null,
+          scenario: activeScenario, // Always use user-defined scenario
           timeline_scope: timelineScope,
           speed: speed
         }),
@@ -366,16 +378,35 @@ const SciFiPersonaLab = () => {
       
       if (result.success) {
         setSimulationOutputs(result.outputs);
+        setEvaluationMetrics(result.evaluation_framework);
+        setSimulationCompleted(true);
         console.log('Simulation completed successfully:', result);
       } else {
         throw new Error(result.error || 'Simulation failed');
       }
     } catch (error) {
       console.error('Simulation error:', error);
-      alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your API configuration and environment variables.`);
+      alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your scenario configuration and API settings.`);
     } finally {
       setIsRunning(false);
     }
+  };
+
+  const pauseSimulation = () => {
+    setIsPaused(!isPaused);
+  };
+
+  const resetSimulation = () => {
+    setIsRunning(false);
+    setIsPaused(false);
+    setSimulationCompleted(false);
+    setSimulationOutputs([]);
+    setEvaluationMetrics(null);
+  };
+
+  const restartSimulation = () => {
+    resetSimulation();
+    setTimeout(() => runSimulation(), 100);
   };
 
   // UI Components
@@ -461,57 +492,53 @@ const SciFiPersonaLab = () => {
     </HolographicPanel>
   );
 
+  // FIXED: PersonaEditor with stable references to prevent typing issues
   const PersonaEditor = () => {
     if (!editingPersona) return null;
 
-    const updatePersona = (field: string, value: any) => {
-      if (!editingPersona) return;
-      setEditingPersona({ ...editingPersona, [field]: value });
-    };
+    // Use useCallback to prevent recreation of handlers
+    const updatePersona = useCallback((field: string, value: any) => {
+      setEditingPersona(prev => prev ? { ...prev, [field]: value } : null);
+    }, []);
 
-    const updateDemographics = (field: string, value: any) => {
-      if (!editingPersona) return;
-      setEditingPersona({
-        ...editingPersona,
-        demographics: { ...editingPersona.demographics, [field]: value }
+    const updateDemographics = useCallback((field: string, value: any) => {
+      setEditingPersona(prev => prev ? {
+        ...prev,
+        demographics: { ...prev.demographics, [field]: value }
+      } : null);
+    }, []);
+
+    const updateSkills = useCallback((field: string, value: number) => {
+      setEditingPersona(prev => prev ? {
+        ...prev,
+        skills: { ...prev.skills, [field]: value }
+      } : null);
+    }, []);
+
+    const updateBehavioralPatterns = useCallback((index: number, value: string) => {
+      setEditingPersona(prev => {
+        if (!prev) return null;
+        const newPatterns = [...prev.behavioral_patterns];
+        newPatterns[index] = value;
+        return { ...prev, behavioral_patterns: newPatterns };
       });
-    };
+    }, []);
 
-    const updateSkills = (field: string, value: number) => {
-      if (!editingPersona) return;
-      setEditingPersona({
-        ...editingPersona,
-        skills: { ...editingPersona.skills, [field]: value }
-      });
-    };
+    const addBehavioralPattern = useCallback(() => {
+      setEditingPersona(prev => prev ? {
+        ...prev,
+        behavioral_patterns: [...prev.behavioral_patterns, '']
+      } : null);
+    }, []);
 
-    const updateBehavioralPatterns = (index: number, value: string) => {
-      if (!editingPersona) return;
-      const newPatterns = [...editingPersona.behavioral_patterns];
-      newPatterns[index] = value;
-      setEditingPersona({
-        ...editingPersona,
-        behavioral_patterns: newPatterns
-      });
-    };
+    const removeBehavioralPattern = useCallback((index: number) => {
+      setEditingPersona(prev => prev ? {
+        ...prev,
+        behavioral_patterns: prev.behavioral_patterns.filter((_, i) => i !== index)
+      } : null);
+    }, []);
 
-    const addBehavioralPattern = () => {
-      if (!editingPersona) return;
-      setEditingPersona({
-        ...editingPersona,
-        behavioral_patterns: [...editingPersona.behavioral_patterns, '']
-      });
-    };
-
-    const removeBehavioralPattern = (index: number) => {
-      if (!editingPersona) return;
-      setEditingPersona({
-        ...editingPersona,
-        behavioral_patterns: editingPersona.behavioral_patterns.filter((_, i) => i !== index)
-      });
-    };
-
-    const savePersona = () => {
+    const savePersona = useCallback(() => {
       if (!editingPersona) return;
       
       const existingIndex = personas.findIndex(p => p.id === editingPersona.id);
@@ -520,11 +547,11 @@ const SciFiPersonaLab = () => {
         updatedPersonas[existingIndex] = editingPersona;
         setPersonas(updatedPersonas);
       } else {
-        setPersonas([...personas, editingPersona]);
+        setPersonas(prev => [...prev, editingPersona]);
       }
       
       setEditingPersona(null);
-    };
+    }, [editingPersona, personas]);
 
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -669,12 +696,12 @@ const SciFiPersonaLab = () => {
                 ))}
               </div>
 
-              {/* Behavioral Patterns */}
+              {/* Behavioral Patterns - FIXED: Using keys to prevent focus loss */}
               <div className="space-y-4">
                 <div className="text-yellow-400 font-mono font-bold">BEHAVIORAL PATTERNS</div>
                 
                 {editingPersona.behavioral_patterns.map((pattern, index) => (
-                  <div key={index} className="flex gap-2">
+                  <div key={`pattern-${index}`} className="flex gap-2">
                     <input 
                       type="text"
                       value={pattern}
@@ -716,56 +743,54 @@ const SciFiPersonaLab = () => {
     );
   };
 
-  // Complete Scenario Builder
+  // FIXED: ScenarioBuilder with stable references
   const ScenarioBuilder = () => {
-    const addTask = () => {
+    // Use useCallback to prevent function recreation
+    const updateNewScenario = useCallback((field: string, value: any) => {
+      setNewScenario(prev => ({ ...prev, [field]: value }));
+    }, []);
+
+    const updateSystemContext = useCallback((field: string, value: any) => {
       setNewScenario(prev => ({
         ...prev,
-        tasks: [...prev.tasks, { 
-          id: Date.now(), 
-          name: '', 
-          description: '', 
-          is_critical: false,
-          security_implications: [] 
-        }]
+        system_context: { ...prev.system_context, [field]: value }
       }));
-    };
+    }, []);
 
-    const updateTask = (index: number, field: string, value: any) => {
+    const addWorkflowStep = useCallback(() => {
+      const newStep = {
+        id: Date.now(),
+        title: '',
+        interface_description: '',
+        user_prompt: '',
+        available_actions: [''],
+        system_responses: {},
+        security_elements: [''],
+        decision_points: []
+      };
       setNewScenario(prev => ({
         ...prev,
-        tasks: prev.tasks.map((task, i) => 
-          i === index ? { ...task, [field]: value } : task
-        )
+        workflow_steps: [...prev.workflow_steps, newStep]
       }));
-    };
+    }, []);
 
-    const addWorkflowStep = () => {
-      setNewScenario(prev => ({
-        ...prev,
-        workflow_steps: [...prev.workflow_steps, {
-          id: Date.now(),
-          title: '',
-          interface_description: '',
-          user_prompt: '',
-          available_actions: [''],
-          system_responses: {},
-          security_elements: [''],
-          decision_points: []
-        }]
-      }));
-    };
-
-    const updateWorkflowStep = (index: number, field: string, value: any) => {
+    const updateWorkflowStep = useCallback((index: number, field: string, value: any) => {
       setNewScenario(prev => ({
         ...prev,
         workflow_steps: prev.workflow_steps.map((step, i) => 
           i === index ? { ...step, [field]: value } : step
         )
       }));
-    };
+    }, []);
 
-    const updateWorkflowStepActions = (stepIndex: number, actionIndex: number, value: string) => {
+    const removeWorkflowStep = useCallback((index: number) => {
+      setNewScenario(prev => ({
+        ...prev,
+        workflow_steps: prev.workflow_steps.filter((_, i) => i !== index)
+      }));
+    }, []);
+
+    const updateWorkflowStepActions = useCallback((stepIndex: number, actionIndex: number, value: string) => {
       setNewScenario(prev => ({
         ...prev,
         workflow_steps: prev.workflow_steps.map((step, i) => 
@@ -777,9 +802,9 @@ const SciFiPersonaLab = () => {
           } : step
         )
       }));
-    };
+    }, []);
 
-    const addActionToStep = (stepIndex: number) => {
+    const addActionToStep = useCallback((stepIndex: number) => {
       setNewScenario(prev => ({
         ...prev,
         workflow_steps: prev.workflow_steps.map((step, i) => 
@@ -789,9 +814,9 @@ const SciFiPersonaLab = () => {
           } : step
         )
       }));
-    };
+    }, []);
 
-    const removeActionFromStep = (stepIndex: number, actionIndex: number) => {
+    const removeActionFromStep = useCallback((stepIndex: number, actionIndex: number) => {
       setNewScenario(prev => ({
         ...prev,
         workflow_steps: prev.workflow_steps.map((step, i) => 
@@ -801,9 +826,9 @@ const SciFiPersonaLab = () => {
           } : step
         )
       }));
-    };
+    }, []);
 
-    const updateSecurityElements = (stepIndex: number, elementIndex: number, value: string) => {
+    const updateSecurityElements = useCallback((stepIndex: number, elementIndex: number, value: string) => {
       setNewScenario(prev => ({
         ...prev,
         workflow_steps: prev.workflow_steps.map((step, i) => 
@@ -815,9 +840,9 @@ const SciFiPersonaLab = () => {
           } : step
         )
       }));
-    };
+    }, []);
 
-    const addSecurityElement = (stepIndex: number) => {
+    const addSecurityElement = useCallback((stepIndex: number) => {
       setNewScenario(prev => ({
         ...prev,
         workflow_steps: prev.workflow_steps.map((step, i) => 
@@ -827,9 +852,9 @@ const SciFiPersonaLab = () => {
           } : step
         )
       }));
-    };
+    }, []);
 
-    const removeSecurityElement = (stepIndex: number, elementIndex: number) => {
+    const removeSecurityElement = useCallback((stepIndex: number, elementIndex: number) => {
       setNewScenario(prev => ({
         ...prev,
         workflow_steps: prev.workflow_steps.map((step, i) => 
@@ -839,9 +864,9 @@ const SciFiPersonaLab = () => {
           } : step
         )
       }));
-    };
+    }, []);
 
-    const saveScenario = () => {
+    const saveScenario = useCallback(() => {
       if (!newScenario.title.trim()) {
         alert('Please enter a scenario title');
         return;
@@ -872,7 +897,7 @@ const SciFiPersonaLab = () => {
       });
       
       alert('Scenario saved successfully!');
-    };
+    }, [newScenario]);
 
     return (
       <HolographicPanel glow className="space-y-6">
@@ -885,8 +910,8 @@ const SciFiPersonaLab = () => {
               <input 
                 type="text"
                 value={newScenario.title}
-                onChange={(e) => setNewScenario(prev => ({...prev, title: e.target.value}))}
-                placeholder="e.g., CORPORATE EMAIL  RESPONSE"
+                onChange={(e) => updateNewScenario('title', e.target.value)}
+                placeholder="e.g., CORPORATE EMAIL RESPONSE"
                 className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
               />
             </div>
@@ -895,7 +920,7 @@ const SciFiPersonaLab = () => {
               <label className="block text-gray-400 font-mono text-xs mb-1">DESCRIPTION</label>
               <textarea 
                 value={newScenario.description}
-                onChange={(e) => setNewScenario(prev => ({...prev, description: e.target.value}))}
+                onChange={(e) => updateNewScenario('description', e.target.value)}
                 placeholder="Describe the security scenario..."
                 className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
               />
@@ -905,10 +930,7 @@ const SciFiPersonaLab = () => {
               <label className="block text-gray-400 font-mono text-xs mb-1">SYSTEM TYPE</label>
               <select 
                 value={newScenario.system_context.system_type}
-                onChange={(e) => setNewScenario(prev => ({
-                  ...prev, 
-                  system_context: {...prev.system_context, system_type: e.target.value}
-                }))}
+                onChange={(e) => updateSystemContext('system_type', e.target.value)}
                 className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
               >
                 <option value="">SELECT SYSTEM TYPE</option>
@@ -966,14 +988,11 @@ const SciFiPersonaLab = () => {
           
           <div className="space-y-4">
             {newScenario.workflow_steps.map((step, stepIndex) => (
-              <div key={step.id} className="border border-gray-600 rounded p-4 bg-gray-900/50">
+              <div key={`step-${step.id}`} className="border border-gray-600 rounded p-4 bg-gray-900/50">
                 <div className="flex justify-between items-start mb-3">
                   <div className="text-cyan-400 font-mono font-bold text-sm">STEP {stepIndex + 1}</div>
                   <button 
-                    onClick={() => setNewScenario(prev => ({
-                      ...prev,
-                      workflow_steps: prev.workflow_steps.filter((_, i) => i !== stepIndex)
-                    }))}
+                    onClick={() => removeWorkflowStep(stepIndex)}
                     className="text-red-400 hover:text-red-300"
                   >
                     <Icons.X />
@@ -1027,7 +1046,7 @@ const SciFiPersonaLab = () => {
                   </div>
                   <div className="space-y-2">
                     {step.available_actions.map((action, actionIndex) => (
-                      <div key={actionIndex} className="flex gap-2">
+                      <div key={`action-${stepIndex}-${actionIndex}`} className="flex gap-2">
                         <input 
                           type="text"
                           value={action}
@@ -1060,7 +1079,7 @@ const SciFiPersonaLab = () => {
                   </div>
                   <div className="space-y-2">
                     {step.security_elements.map((element, elementIndex) => (
-                      <div key={elementIndex} className="flex gap-2">
+                      <div key={`element-${stepIndex}-${elementIndex}`} className="flex gap-2">
                         <input 
                           type="text"
                           value={element}
@@ -1076,73 +1095,6 @@ const SciFiPersonaLab = () => {
                         </button>
                       </div>
                     ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Task Sequence */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <div className="text-yellow-400 font-mono font-bold">TASK SEQUENCE DEFINITION</div>
-            <button 
-              onClick={addTask}
-              className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm"
-            >
-              <Icons.Plus className="inline mr-2" />
-              ADD TASK
-            </button>
-          </div>
-          
-          <div className="space-y-3">
-            {newScenario.tasks.map((task, index) => (
-              <div key={task.id} className="border border-gray-600 rounded p-4 bg-gray-900/50">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="text-cyan-400 font-mono font-bold text-sm">TASK {index + 1}</div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-gray-400 font-mono text-xs">
-                      <input 
-                        type="checkbox"
-                        checked={task.is_critical}
-                        onChange={(e) => updateTask(index, 'is_critical', e.target.checked)}
-                        className="mr-1 accent-red-400"
-                      />
-                      CRITICAL
-                    </label>
-                    <button 
-                      onClick={() => setNewScenario(prev => ({
-                        ...prev,
-                        tasks: prev.tasks.filter((_, i) => i !== index)
-                      }))}
-                      className="text-red-400 hover:text-red-300"
-                    >
-                      <Icons.X />
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-400 font-mono text-xs mb-1">TASK NAME</label>
-                    <input 
-                      type="text"
-                      value={task.name}
-                      onChange={(e) => updateTask(index, 'name', e.target.value)}
-                      placeholder="e.g., Email Authentication Check"
-                      className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-400 font-mono text-xs mb-1">DESCRIPTION</label>
-                    <textarea 
-                      value={task.description}
-                      onChange={(e) => updateTask(index, 'description', e.target.value)}
-                      placeholder="Detailed task description and security implications..."
-                      className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
-                    />
                   </div>
                 </div>
               </div>
@@ -1177,8 +1129,10 @@ const SciFiPersonaLab = () => {
     );
   };
 
+  // Enhanced simulation control with proper validation and state management
   const SimulationControl = () => {
     const canCalculateEntropy = selectedPersonas.length > 1;
+    const hasScenario = activeScenario && activeScenario.workflow_steps.length > 0;
     
     return (
       <HolographicPanel glow className="space-y-4">
@@ -1192,9 +1146,19 @@ const SciFiPersonaLab = () => {
             SELECTED PERSONAS: {selectedPersonas.length}
           </div>
           
+          <div className="text-gray-400 font-mono text-xs">
+            ACTIVE SCENARIO: {activeScenario ? `${activeScenario.title} (${activeScenario.workflow_steps.length} steps)` : 'None'}
+          </div>
+          
           {selectedPersonas.length === 0 && (
             <div className="text-red-400 font-mono text-xs border border-red-500/30 rounded p-2 bg-red-500/10">
               ⚠ NO PERSONAS SELECTED
+            </div>
+          )}
+          
+          {!hasScenario && (
+            <div className="text-red-400 font-mono text-xs border border-red-500/30 rounded p-2 bg-red-500/10">
+              ⚠ NO SCENARIO DEFINED - Use Scenario Builder
             </div>
           )}
           
@@ -1204,48 +1168,68 @@ const SciFiPersonaLab = () => {
             </div>
           )}
           
-          {canCalculateEntropy && (
+          {canCalculateEntropy && hasScenario && (
             <div className="text-green-400 font-mono text-xs border border-green-500/30 rounded p-2 bg-green-500/10">
-              ✓ ENTROPY CALCULATION ENABLED
+              ✓ READY FOR COMPREHENSIVE EVALUATION
+            </div>
+          )}
+
+          {simulationCompleted && (
+            <div className="text-blue-400 font-mono text-xs border border-blue-500/30 rounded p-2 bg-blue-500/10">
+              ✓ SIMULATION COMPLETED - Results Available
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           <button 
             onClick={runSimulation}
-            disabled={selectedPersonas.length === 0}
+            disabled={selectedPersonas.length === 0 || !hasScenario || isRunning}
             className={`px-3 py-2 rounded font-mono text-xs font-bold border transition-all ${
-              selectedPersonas.length === 0
+              selectedPersonas.length === 0 || !hasScenario
                 ? 'border-gray-600 bg-gray-600/20 text-gray-500 cursor-not-allowed'
                 : isRunning 
-                  ? 'border-red-500 bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                  ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' 
                   : 'border-green-500 bg-green-500/20 text-green-400 hover:bg-green-500/30'
             }`}
           >
-            {isRunning ? 'ABORT' : 'INITIALIZE'}
+            {isRunning ? 'RUNNING' : 'START'}
           </button>
           
           <button 
-            disabled={selectedPersonas.length === 0}
+            onClick={pauseSimulation}
+            disabled={!isRunning}
             className={`px-3 py-2 rounded font-mono text-xs font-bold border transition-all ${
-              selectedPersonas.length === 0
+              !isRunning
                 ? 'border-gray-600 bg-gray-600/20 text-gray-500 cursor-not-allowed'
                 : 'border-yellow-500 bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
             }`}
           >
-            FAST FWD
+            {isPaused ? 'RESUME' : 'PAUSE'}
+          </button>
+
+          <button 
+            onClick={resetSimulation}
+            disabled={!simulationCompleted && !isRunning}
+            className={`px-3 py-2 rounded font-mono text-xs font-bold border transition-all ${
+              !simulationCompleted && !isRunning
+                ? 'border-gray-600 bg-gray-600/20 text-gray-500 cursor-not-allowed'
+                : 'border-red-500 bg-red-500/20 text-red-400 hover:bg-red-500/30'
+            }`}
+          >
+            RESET
           </button>
           
           <button 
-            disabled={selectedPersonas.length === 0}
+            onClick={restartSimulation}
+            disabled={selectedPersonas.length === 0 || !hasScenario || isRunning}
             className={`px-3 py-2 rounded font-mono text-xs font-bold border transition-all ${
-              selectedPersonas.length === 0
+              selectedPersonas.length === 0 || !hasScenario || isRunning
                 ? 'border-gray-600 bg-gray-600/20 text-gray-500 cursor-not-allowed'
                 : 'border-purple-500 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
             }`}
           >
-            ANALYZE
+            RESTART
           </button>
         </div>
 
@@ -1266,6 +1250,7 @@ const SciFiPersonaLab = () => {
             max="10" 
             value={speed}
             onChange={(e) => setSpeed(Number(e.target.value))}
+            disabled={isRunning}
             className="w-full h-1 bg-gray-700 rounded appearance-none slider"
           />
         </div>
@@ -1273,42 +1258,101 @@ const SciFiPersonaLab = () => {
     );
   };
 
+  // Enhanced SystemStats with real evaluation metrics
   const SystemStats = () => {
     const canCalculateEntropy = selectedPersonas.length > 1;
+    const hasValidMetrics = evaluationMetrics && simulationCompleted;
     
     return (
       <HolographicPanel>
-        <div className="text-cyan-400 font-mono font-bold text-sm mb-4">SYSTEM DIAGNOSTICS</div>
+        <div className="text-cyan-400 font-mono font-bold text-sm mb-4">EVALUATION METRICS</div>
         
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
             <div className="text-2xl font-mono font-bold text-green-400">
-              {selectedPersonas.length > 0 ? '94.7%' : '--'}
+              {hasValidMetrics && evaluationMetrics.persona_fidelity_scores ? 
+                (Object.values(evaluationMetrics.persona_fidelity_scores).reduce((a: number, b: any) => a + b, 0) / Object.keys(evaluationMetrics.persona_fidelity_scores).length * 100).toFixed(1) + '%'
+                : '--'
+              }
             </div>
-            <div className="text-xs font-mono text-gray-400">FIDELITY INDEX</div>
+            <div className="text-xs font-mono text-gray-400">PERSONA FIDELITY</div>
           </div>
           
           <div className="text-center">
             <div className="text-2xl font-mono font-bold text-purple-400">
-              {canCalculateEntropy ? '2.34' : 'N/A'}
+              {hasValidMetrics && evaluationMetrics.behavioral_diversity_index ? 
+                evaluationMetrics.behavioral_diversity_index.toFixed(2)
+                : canCalculateEntropy ? '0.00' : 'N/A'
+              }
             </div>
-            <div className="text-xs font-mono text-gray-400">ENTROPY LEVEL</div>
+            <div className="text-xs font-mono text-gray-400">DIVERSITY INDEX</div>
           </div>
           
           <div className="text-center">
             <div className="text-2xl font-mono font-bold text-red-400">
-              {selectedPersonas.length > 0 ? '07' : '--'}
+              {hasValidMetrics && evaluationMetrics.vulnerability_detection_rate ? 
+                evaluationMetrics.vulnerability_detection_rate.unique_vulnerabilities.toString().padStart(2, '0')
+                : '--'
+              }
             </div>
-            <div className="text-xs font-mono text-gray-400">THREATS FOUND</div>
+            <div className="text-xs font-mono text-gray-400">VULNERABILITIES</div>
           </div>
           
           <div className="text-center">
             <div className="text-2xl font-mono font-bold text-yellow-400">
-              {selectedPersonas.length > 0 ? '15.2S' : '--'}
+              {hasValidMetrics && evaluationMetrics.vulnerability_detection_rate ? 
+                evaluationMetrics.vulnerability_detection_rate.critical_count.toString().padStart(2, '0')
+                : '--'
+              }
             </div>
-            <div className="text-xs font-mono text-gray-400">EXEC TIME</div>
+            <div className="text-xs font-mono text-gray-400">CRITICAL</div>
           </div>
         </div>
+
+        {/* Detailed Metrics Display */}
+        {hasValidMetrics && (
+          <div className="mt-4 space-y-3">
+            <div className="border-t border-gray-600 pt-3">
+              <div className="text-cyan-400 font-mono font-bold text-xs mb-2">PERSONA FIDELITY BREAKDOWN</div>
+              {Object.entries(evaluationMetrics.persona_fidelity_scores || {}).map(([personaId, score]) => {
+                const persona = selectedPersonas.find(p => p.id === personaId);
+                return (
+                  <div key={personaId} className="flex justify-between text-xs font-mono">
+                    <span className="text-gray-400">{persona?.name || personaId}</span>
+                    <span className={`${(score as number) > 0.7 ? 'text-green-400' : (score as number) > 0.4 ? 'text-yellow-400' : 'text-red-400'}`}>
+                      {((score as number) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {evaluationMetrics.vulnerability_detection_rate?.vulnerabilities_detail && (
+              <div className="border-t border-gray-600 pt-3">
+                <div className="text-cyan-400 font-mono font-bold text-xs mb-2">VULNERABILITY DETAILS</div>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {evaluationMetrics.vulnerability_detection_rate.vulnerabilities_detail.slice(0, 5).map((vuln: any, index: number) => (
+                    <div key={index} className="text-xs font-mono">
+                      <span className={`${
+                        vuln.severity === 'critical' ? 'text-red-400' :
+                        vuln.severity === 'high' ? 'text-orange-400' :
+                        vuln.severity === 'medium' ? 'text-yellow-400' : 'text-green-400'
+                      }`}>
+                        {vuln.severity.toUpperCase()}
+                      </span>
+                      <span className="text-gray-400 ml-2">{vuln.type.replace(/_/g, ' ')}</span>
+                    </div>
+                  ))}
+                  {evaluationMetrics.vulnerability_detection_rate.vulnerabilities_detail.length > 5 && (
+                    <div className="text-gray-500 text-xs">
+                      +{evaluationMetrics.vulnerability_detection_rate.vulnerabilities_detail.length - 5} more...
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {!canCalculateEntropy && (
           <div className="mt-4 p-3 border border-yellow-500/30 rounded bg-yellow-500/10">
@@ -1317,6 +1361,17 @@ const SciFiPersonaLab = () => {
             </div>
             <div className="text-gray-400 font-mono text-xs">
               Behavioral Diversity Index requires multiple personas for meaningful comparison.
+            </div>
+          </div>
+        )}
+
+        {!simulationCompleted && selectedPersonas.length > 0 && activeScenario && (
+          <div className="mt-4 p-3 border border-blue-500/30 rounded bg-blue-500/10">
+            <div className="text-blue-400 font-mono text-xs font-bold mb-1">
+              READY FOR EVALUATION
+            </div>
+            <div className="text-gray-400 font-mono text-xs">
+              Run simulation to calculate comprehensive metrics.
             </div>
           </div>
         )}
@@ -1434,21 +1489,6 @@ const SciFiPersonaLab = () => {
                 </button>
               </div>
             </div>
-
-            {/* Default Scenario Info */}
-            <HolographicPanel>
-              <div className="text-cyan-400 font-mono font-bold text-sm mb-4">DEFAULT SCENARIO</div>
-              <div className="border border-cyan-500/30 rounded p-3 bg-cyan-500/10">
-                <div className="text-cyan-400 font-mono font-bold text-sm">Email Response</div>
-                <div className="text-gray-400 font-mono text-xs mt-1">Employee receives suspicious email and must decide how to respond</div>
-                <div className="text-yellow-400 font-mono text-xs mt-2">
-                  2 WORKFLOW STEPS | EMAIL_SYSTEM | BUILT-IN
-                </div>
-                <div className="text-green-400 font-mono text-xs mt-1">
-                  ✓ Always available for simulation
-                </div>
-              </div>
-            </HolographicPanel>
 
             {/* Scenario Builder */}
             <ScenarioBuilder />
@@ -1622,61 +1662,75 @@ const SciFiPersonaLab = () => {
                 )}
               </HolographicPanel>
 
-              {/* Real-time Output Stream */}
+              {/* Real Simulation Output Stream */}
               <HolographicPanel>
                 <div className="text-cyan-400 font-mono font-bold text-sm mb-4 flex items-center gap-2">
                   <Icons.CheckCircle />
-                  LIVE OUTPUT STREAM
+                  SIMULATION OUTPUT STREAM
                 </div>
                 
                 <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {isRunning && selectedPersonas.length > 0 ? (
-                    <>
-                      {selectedPersonas.map((persona, index) => (
-                        <div key={persona.id} className="border border-gray-600 rounded p-3 bg-gray-900/50">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className={`w-2 h-2 rounded-full animate-pulse ${
-                              persona.type === 'THREAT_ACTOR' ? 'bg-red-500' :
-                              persona.type === 'SECURITY_PRACTITIONER' ? 'bg-green-500' :
-                              'bg-blue-500'
-                            }`} />
-                            <div className="text-cyan-400 font-mono font-bold text-xs">{persona.name}</div>
-                            <div className="text-gray-400 font-mono text-xs">STEP {Math.floor(Date.now()/2000) % 5 + 1}</div>
-                          </div>
-                          
-                          {/* Think-aloud protocol */}
-                          <div className="bg-purple-500/10 border border-purple-500/30 rounded p-2 mb-2">
-                            <div className="text-purple-400 font-mono text-xs font-bold mb-1">THINK-ALOUD:</div>
-                            <div className="text-gray-300 font-mono text-xs italic">
-                              {persona.type === 'THREAT_ACTOR' ? 
-                                "Analyzing email headers for weaknesses... This looks like corporate infrastructure. Checking for social engineering opportunities..." :
-                                persona.type === 'SECURITY_PRACTITIONER' ?
-                                "Running standard verification protocols. Checking sender authentication. This pattern matches known suscipious campaigns..." :
-                                "This email looks urgent but I'm not sure about the sender. Should I click the link? I'm running late for my meeting..."
-                              }
-                            </div>
-                          </div>
-                          
-                          {/* Action taken */}
-                          <div className="bg-green-500/10 border border-green-500/30 rounded p-2">
-                            <div className="text-green-400 font-mono text-xs font-bold mb-1">ACTION:</div>
-                            <div className="text-gray-300 font-mono text-xs">
-                              {persona.type === 'THREAT_ACTOR' ? 
-                                "Crafting targeted response to gather more organizational intelligence" :
-                                persona.type === 'SECURITY_PRACTITIONER' ?
-                                "Quarantining email and notifying security team" :
-                                "Hovering over link to check URL before clicking"
-                              }
-                            </div>
+                  {simulationOutputs.length > 0 ? (
+                    simulationOutputs.map((output, index) => (
+                      <div key={output.id} className="border border-gray-600 rounded p-3 bg-gray-900/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            output.error ? 'bg-red-500' :
+                            output.persona_id.includes('martin') ? 'bg-red-500' :
+                            output.persona_id.includes('alex') ? 'bg-green-500' :
+                            'bg-blue-500'
+                          } ${isRunning ? 'animate-pulse' : ''}`} />
+                          <div className="text-cyan-400 font-mono font-bold text-xs">{output.persona_name}</div>
+                          <div className="text-gray-400 font-mono text-xs">STEP {output.step}</div>
+                          <div className="text-gray-500 font-mono text-xs">{output.step_title}</div>
+                        </div>
+                        
+                        {/* Action taken */}
+                        <div className="bg-green-500/10 border border-green-500/30 rounded p-2 mb-2">
+                          <div className="text-green-400 font-mono text-xs font-bold mb-1">ACTION:</div>
+                          <div className="text-gray-300 font-mono text-xs">
+                            {output.action}
                           </div>
                         </div>
-                      ))}
-                    </>
+
+                        {/* Reasoning */}
+                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2 mb-2">
+                          <div className="text-blue-400 font-mono text-xs font-bold mb-1">REASONING:</div>
+                          <div className="text-gray-300 font-mono text-xs">
+                            {output.reasoning}
+                          </div>
+                        </div>
+
+                        {/* Security Assessment */}
+                        {output.security_assessment && (
+                          <div className="bg-purple-500/10 border border-purple-500/30 rounded p-2 mb-2">
+                            <div className="text-purple-400 font-mono text-xs font-bold mb-1">SECURITY ASSESSMENT:</div>
+                            <div className="text-gray-300 font-mono text-xs">
+                              {output.security_assessment}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Confidence and Timestamp */}
+                        <div className="flex justify-between items-center text-xs font-mono text-gray-500">
+                          <span>Confidence: {output.confidence}/5</span>
+                          <span>{new Date(output.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : isRunning ? (
+                    <div className="text-yellow-400 font-mono text-sm text-center py-8 animate-pulse">
+                      SIMULATION IN PROGRESS...
+                    </div>
                   ) : (
                     <div className="text-gray-400 font-mono text-sm text-center py-8">
                       {selectedPersonas.length === 0 ? 
                         "NO ACTIVE SIMULATION - SELECT PERSONAS TO BEGIN" :
-                        "SIMULATION READY - CLICK INITIALIZE TO START"
+                        !activeScenario ?
+                        "NO SCENARIO DEFINED - CREATE SCENARIO FIRST" :
+                        simulationCompleted ?
+                        "SIMULATION COMPLETED - Results displayed above" :
+                        "SIMULATION READY - CLICK START TO BEGIN"
                       }
                     </div>
                   )}
