@@ -214,7 +214,7 @@ const SciFiPersonaLab = () => {
     function draw() {
       if (!ctx) return;
       
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
       
       ctx.fillStyle = '#00ff41';
