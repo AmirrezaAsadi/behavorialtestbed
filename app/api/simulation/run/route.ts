@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
           console.log(`Running simulation for ${persona.name} - Step ${stepCounter}`);
           
           // Determine which model to use
-          const model = process.env.XAI_API_KEY ? "grok-beta" : "gpt-3.5-turbo";
+          const model = process.env.XAI_API_KEY ? "grok-3" : "gpt-3.5-turbo";
           
           const completion = await client.chat.completions.create({
             model: model,
