@@ -1651,7 +1651,7 @@ const SciFiPersonaLab = () => {
                               {persona.type === 'THREAT_ACTOR' ? 
                                 "Analyzing email headers for weaknesses... This looks like corporate infrastructure. Checking for social engineering opportunities..." :
                                 persona.type === 'SECURITY_PRACTITIONER' ?
-                                "Running standard verification protocols. Checking sender authentication. This pattern matches known phishing campaigns..." :
+                                "Running standard verification protocols. Checking sender authentication. This pattern matches known suscipious campaigns..." :
                                 "This email looks urgent but I'm not sure about the sender. Should I click the link? I'm running late for my meeting..."
                               }
                             </div>
