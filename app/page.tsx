@@ -172,6 +172,685 @@ interface SimulationOutput {
   error?: boolean;
 }
 
+// UI Components
+const HolographicPanel: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  glow?: boolean;
+}> = ({ children, className = "", glow = false }) => (
+  <div className={`
+    bg-black/20 backdrop-blur-md border border-cyan-500/30 rounded-lg relative
+    ${glow ? 'shadow-[0_0_20px_rgba(34,211,238,0.3)]' : ''}
+    ${className}
+  `}>
+    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 rounded-lg" />
+    <div className="relative z-10 p-4">
+      {children}
+    </div>
+  </div>
+);
+
+// FIXED: PersonaEditor moved outside main component
+interface PersonaEditorProps {
+  editingPersona: Persona | null;
+  personas: Persona[];
+  setEditingPersona: (persona: Persona | null) => void;
+  setPersonas: (personas: Persona[] | ((prev: Persona[]) => Persona[])) => void;
+}
+
+const PersonaEditor: React.FC<PersonaEditorProps> = ({
+  editingPersona,
+  personas,
+  setEditingPersona,
+  setPersonas
+}) => {
+  if (!editingPersona) return null;
+
+  // Use useCallback to prevent recreation of handlers
+  const updatePersona = useCallback((field: string, value: any) => {
+    setEditingPersona(prev => prev ? { ...prev, [field]: value } : null);
+  }, [setEditingPersona]);
+
+  const updateDemographics = useCallback((field: string, value: any) => {
+    setEditingPersona(prev => prev ? {
+      ...prev,
+      demographics: { ...prev.demographics, [field]: value }
+    } : null);
+  }, [setEditingPersona]);
+
+  const updateSkills = useCallback((field: string, value: number) => {
+    setEditingPersona(prev => prev ? {
+      ...prev,
+      skills: { ...prev.skills, [field]: value }
+    } : null);
+  }, [setEditingPersona]);
+
+  const updateBehavioralPatterns = useCallback((index: number, value: string) => {
+    setEditingPersona(prev => {
+      if (!prev) return null;
+      const newPatterns = [...prev.behavioral_patterns];
+      newPatterns[index] = value;
+      return { ...prev, behavioral_patterns: newPatterns };
+    });
+  }, [setEditingPersona]);
+
+  const addBehavioralPattern = useCallback(() => {
+    setEditingPersona(prev => prev ? {
+      ...prev,
+      behavioral_patterns: [...prev.behavioral_patterns, '']
+    } : null);
+  }, [setEditingPersona]);
+
+  const removeBehavioralPattern = useCallback((index: number) => {
+    setEditingPersona(prev => prev ? {
+      ...prev,
+      behavioral_patterns: prev.behavioral_patterns.filter((_, i) => i !== index)
+    } : null);
+  }, [setEditingPersona]);
+
+  const savePersona = useCallback(() => {
+    if (!editingPersona) return;
+    
+    const existingIndex = personas.findIndex(p => p.id === editingPersona.id);
+    if (existingIndex >= 0) {
+      const updatedPersonas = [...personas];
+      updatedPersonas[existingIndex] = editingPersona;
+      setPersonas(updatedPersonas);
+    } else {
+      setPersonas(prev => [...prev, editingPersona]);
+    }
+    
+    setEditingPersona(null);
+  }, [editingPersona, personas, setPersonas, setEditingPersona]);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <HolographicPanel className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="text-cyan-400 font-mono font-bold text-lg">PERSONA EDITOR</div>
+            <div className="flex gap-2">
+              <button 
+                onClick={savePersona}
+                className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm hover:bg-green-500/30"
+              >
+                <Icons.Save className="inline mr-2" />
+                SAVE
+              </button>
+              <button 
+                onClick={() => setEditingPersona(null)}
+                className="px-4 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded font-mono text-sm hover:bg-red-500/30"
+              >
+                <Icons.X className="inline mr-2" />
+                CANCEL
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Basic Info */}
+            <div className="space-y-4">
+              <div className="text-yellow-400 font-mono font-bold">BASIC INFO</div>
+              
+              <div>
+                <label className="block text-gray-400 font-mono text-xs mb-1">NAME</label>
+                <input 
+                  type="text"
+                  value={editingPersona.name}
+                  onChange={(e) => updatePersona('name', e.target.value)}
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 font-mono text-xs mb-1">TYPE</label>
+                <select 
+                  value={editingPersona.type}
+                  onChange={(e) => updatePersona('type', e.target.value)}
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                >
+                  <option value="THREAT_ACTOR">THREAT ACTOR</option>
+                  <option value="SECURITY_PRACTITIONER">SECURITY PRACTITIONER</option>
+                  <option value="REGULAR_USER">REGULAR USER</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-400 font-mono text-xs mb-1">SUBTYPE</label>
+                <input 
+                  type="text"
+                  value={editingPersona.subtype}
+                  onChange={(e) => updatePersona('subtype', e.target.value)}
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Demographics */}
+            <div className="space-y-4">
+              <div className="text-yellow-400 font-mono font-bold">DEMOGRAPHICS</div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-400 font-mono text-xs mb-1">AGE</label>
+                  <input 
+                    type="number"
+                    value={editingPersona.demographics.age}
+                    onChange={(e) => updateDemographics('age', parseInt(e.target.value))}
+                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-gray-400 font-mono text-xs mb-1">NATIONALITY</label>
+                  <input 
+                    type="text"
+                    value={editingPersona.demographics.nationality}
+                    onChange={(e) => updateDemographics('nationality', e.target.value)}
+                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-400 font-mono text-xs mb-1">LOCATION</label>
+                <input 
+                  type="text"
+                  value={editingPersona.demographics.location}
+                  onChange={(e) => updateDemographics('location', e.target.value)}
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 font-mono text-xs mb-1">BACKGROUND</label>
+                <textarea 
+                  value={editingPersona.demographics.background}
+                  onChange={(e) => updateDemographics('background', e.target.value)}
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 font-mono text-xs mb-1">LANGUAGES (comma separated)</label>
+                <input 
+                  type="text"
+                  value={editingPersona.demographics.languages.join(', ')}
+                  onChange={(e) => updateDemographics('languages', e.target.value.split(', '))}
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Skills */}
+            <div className="space-y-4">
+              <div className="text-yellow-400 font-mono font-bold">SKILL MATRIX (1-5)</div>
+              
+              {Object.entries(editingPersona.skills).map(([skill, level]) => (
+                <div key={skill}>
+                  <label className="block text-gray-400 font-mono text-xs mb-2">
+                    {skill.replace('_', ' ').toUpperCase()}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="range"
+                      min="1"
+                      max="5"
+                      value={level}
+                      onChange={(e) => updateSkills(skill, parseInt(e.target.value))}
+                      className="flex-1"
+                    />
+                    <span className="text-cyan-400 font-mono text-sm w-8">{level}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Behavioral Patterns - FIXED: Using keys to prevent focus loss */}
+            <div className="space-y-4">
+              <div className="text-yellow-400 font-mono font-bold">BEHAVIORAL PATTERNS</div>
+              
+              {editingPersona.behavioral_patterns.map((pattern, index) => (
+                <div key={`pattern-${index}`} className="flex gap-2">
+                  <input 
+                    type="text"
+                    value={pattern}
+                    onChange={(e) => updateBehavioralPatterns(index, e.target.value)}
+                    className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                  />
+                  <button 
+                    onClick={() => removeBehavioralPattern(index)}
+                    className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
+                  >
+                    <Icons.X />
+                  </button>
+                </div>
+              ))}
+              
+              <button 
+                onClick={addBehavioralPattern}
+                className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm"
+              >
+                <Icons.Plus className="inline mr-2" />
+                ADD PATTERN
+              </button>
+            </div>
+
+            {/* Motivation */}
+            <div className="lg:col-span-2">
+              <div className="text-yellow-400 font-mono font-bold mb-2">MOTIVATION</div>
+              <textarea 
+                value={editingPersona.motivation}
+                onChange={(e) => updatePersona('motivation', e.target.value)}
+                className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
+                placeholder="What drives this persona's decisions and actions?"
+              />
+            </div>
+          </div>
+        </div>
+      </HolographicPanel>
+    </div>
+  );
+};
+
+// FIXED: ScenarioBuilder moved outside main component
+interface ScenarioBuilderProps {
+  newScenario: Omit<Scenario, 'id'>;
+  setNewScenario: (scenario: Omit<Scenario, 'id'> | ((prev: Omit<Scenario, 'id'>) => Omit<Scenario, 'id'>)) => void;
+  scenarios: Scenario[];
+  setScenarios: (scenarios: Scenario[] | ((prev: Scenario[]) => Scenario[])) => void;
+}
+
+const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
+  newScenario,
+  setNewScenario,
+  scenarios,
+  setScenarios
+}) => {
+  // Use useCallback to prevent function recreation
+  const updateNewScenario = useCallback((field: string, value: any) => {
+    setNewScenario(prev => ({ ...prev, [field]: value }));
+  }, [setNewScenario]);
+
+  const updateSystemContext = useCallback((field: string, value: any) => {
+    setNewScenario(prev => ({
+      ...prev,
+      system_context: { ...prev.system_context, [field]: value }
+    }));
+  }, [setNewScenario]);
+
+  const addWorkflowStep = useCallback(() => {
+    const newStep = {
+      id: Date.now(),
+      title: '',
+      interface_description: '',
+      user_prompt: '',
+      available_actions: [''],
+      system_responses: {},
+      security_elements: [''],
+      decision_points: []
+    };
+    setNewScenario(prev => ({
+      ...prev,
+      workflow_steps: [...prev.workflow_steps, newStep]
+    }));
+  }, [setNewScenario]);
+
+  const updateWorkflowStep = useCallback((index: number, field: string, value: any) => {
+    setNewScenario(prev => ({
+      ...prev,
+      workflow_steps: prev.workflow_steps.map((step, i) => 
+        i === index ? { ...step, [field]: value } : step
+      )
+    }));
+  }, [setNewScenario]);
+
+  const removeWorkflowStep = useCallback((index: number) => {
+    setNewScenario(prev => ({
+      ...prev,
+      workflow_steps: prev.workflow_steps.filter((_, i) => i !== index)
+    }));
+  }, [setNewScenario]);
+
+  const updateWorkflowStepActions = useCallback((stepIndex: number, actionIndex: number, value: string) => {
+    setNewScenario(prev => ({
+      ...prev,
+      workflow_steps: prev.workflow_steps.map((step, i) => 
+        i === stepIndex ? {
+          ...step,
+          available_actions: step.available_actions.map((action, j) => 
+            j === actionIndex ? value : action
+          )
+        } : step
+      )
+    }));
+  }, [setNewScenario]);
+
+  const addActionToStep = useCallback((stepIndex: number) => {
+    setNewScenario(prev => ({
+      ...prev,
+      workflow_steps: prev.workflow_steps.map((step, i) => 
+        i === stepIndex ? {
+          ...step,
+          available_actions: [...step.available_actions, '']
+        } : step
+      )
+    }));
+  }, [setNewScenario]);
+
+  const removeActionFromStep = useCallback((stepIndex: number, actionIndex: number) => {
+    setNewScenario(prev => ({
+      ...prev,
+      workflow_steps: prev.workflow_steps.map((step, i) => 
+        i === stepIndex ? {
+          ...step,
+          available_actions: step.available_actions.filter((_, j) => j !== actionIndex)
+        } : step
+      )
+    }));
+  }, [setNewScenario]);
+
+  const updateSecurityElements = useCallback((stepIndex: number, elementIndex: number, value: string) => {
+    setNewScenario(prev => ({
+      ...prev,
+      workflow_steps: prev.workflow_steps.map((step, i) => 
+        i === stepIndex ? {
+          ...step,
+          security_elements: step.security_elements.map((element, j) => 
+            j === elementIndex ? value : element
+          )
+        } : step
+      )
+    }));
+  }, [setNewScenario]);
+
+  const addSecurityElement = useCallback((stepIndex: number) => {
+    setNewScenario(prev => ({
+      ...prev,
+      workflow_steps: prev.workflow_steps.map((step, i) => 
+        i === stepIndex ? {
+          ...step,
+          security_elements: [...step.security_elements, '']
+        } : step
+      )
+    }));
+  }, [setNewScenario]);
+
+  const removeSecurityElement = useCallback((stepIndex: number, elementIndex: number) => {
+    setNewScenario(prev => ({
+      ...prev,
+      workflow_steps: prev.workflow_steps.map((step, i) => 
+        i === stepIndex ? {
+          ...step,
+          security_elements: step.security_elements.filter((_, j) => j !== elementIndex)
+        } : step
+      )
+    }));
+  }, [setNewScenario]);
+
+  const saveScenario = useCallback(() => {
+    if (!newScenario.title.trim()) {
+      alert('Please enter a scenario title');
+      return;
+    }
+    
+    const scenarioToSave = {
+      ...newScenario,
+      id: Date.now()
+    };
+    
+    setScenarios(prev => [...prev, scenarioToSave]);
+    
+    // Reset form
+    setNewScenario({
+      title: '',
+      description: '',
+      system_context: {
+        system_type: '',
+        user_goals: [],
+        environmental_factors: [],
+        security_requirements: [],
+        constraints: []
+      },
+      workflow_steps: [],
+      tasks: [],
+      success_criteria: [],
+      security_elements: []
+    });
+    
+    alert('Scenario saved successfully!');
+  }, [newScenario, setScenarios, setNewScenario]);
+
+  return (
+    <HolographicPanel glow className="space-y-6">
+      <div className="text-cyan-400 font-mono font-bold text-lg">SCENARIO DEFINITION MATRIX</div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-gray-400 font-mono text-xs mb-1">SCENARIO TITLE</label>
+            <input 
+              type="text"
+              value={newScenario.title}
+              onChange={(e) => updateNewScenario('title', e.target.value)}
+              placeholder="e.g., CORPORATE EMAIL RESPONSE"
+              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-400 font-mono text-xs mb-1">DESCRIPTION</label>
+            <textarea 
+              value={newScenario.description}
+              onChange={(e) => updateNewScenario('description', e.target.value)}
+              placeholder="Describe the security scenario..."
+              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-400 font-mono text-xs mb-1">SYSTEM TYPE</label>
+            <select 
+              value={newScenario.system_context.system_type}
+              onChange={(e) => updateSystemContext('system_type', e.target.value)}
+              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+            >
+              <option value="">SELECT SYSTEM TYPE</option>
+              <option value="web-application">WEB APPLICATION</option>
+              <option value="mobile-app">MOBILE APPLICATION</option>
+              <option value="email-system">EMAIL SYSTEM</option>
+              <option value="banking-system">BANKING SYSTEM</option>
+              <option value="social-media">SOCIAL MEDIA PLATFORM</option>
+              <option value="iot-device">IOT DEVICE</option>
+              <option value="cloud-service">CLOUD SERVICE</option>
+              <option value="enterprise-network">ENTERPRISE NETWORK</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-gray-400 font-mono text-xs mb-1">USER GOALS</label>
+            <textarea 
+              placeholder="What are users trying to accomplish?"
+              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-400 font-mono text-xs mb-1">ENVIRONMENTAL FACTORS</label>
+            <textarea 
+              placeholder="Time pressure, distractions, context..."
+              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-400 font-mono text-xs mb-1">SECURITY REQUIREMENTS</label>
+            <textarea 
+              placeholder="Authentication, authorization, data protection..."
+              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Workflow Steps */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-yellow-400 font-mono font-bold">WORKFLOW STEPS</div>
+          <button 
+            onClick={addWorkflowStep}
+            className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm"
+          >
+            <Icons.Plus className="inline mr-2" />
+            ADD STEP
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          {newScenario.workflow_steps.map((step, stepIndex) => (
+            <div key={`step-${step.id}`} className="border border-gray-600 rounded p-4 bg-gray-900/50">
+              <div className="flex justify-between items-start mb-3">
+                <div className="text-cyan-400 font-mono font-bold text-sm">STEP {stepIndex + 1}</div>
+                <button 
+                  onClick={() => removeWorkflowStep(stepIndex)}
+                  className="text-red-400 hover:text-red-300"
+                >
+                  <Icons.X />
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-gray-400 font-mono text-xs mb-1">STEP TITLE</label>
+                  <input 
+                    type="text"
+                    value={step.title}
+                    onChange={(e) => updateWorkflowStep(stepIndex, 'title', e.target.value)}
+                    placeholder="e.g., Email Authentication Check"
+                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-gray-400 font-mono text-xs mb-1">INTERFACE DESCRIPTION</label>
+                  <textarea 
+                    value={step.interface_description}
+                    onChange={(e) => updateWorkflowStep(stepIndex, 'interface_description', e.target.value)}
+                    placeholder="Describe what the user sees..."
+                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-gray-400 font-mono text-xs mb-1">USER PROMPT</label>
+                <textarea 
+                  value={step.user_prompt}
+                  onChange={(e) => updateWorkflowStep(stepIndex, 'user_prompt', e.target.value)}
+                  placeholder="What specific situation/content does the user encounter?"
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
+                />
+              </div>
+
+              {/* Available Actions */}
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-gray-400 font-mono text-xs">AVAILABLE ACTIONS</label>
+                  <button 
+                    onClick={() => addActionToStep(stepIndex)}
+                    className="px-2 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-xs"
+                  >
+                    <Icons.Plus className="inline mr-1" />
+                    ADD ACTION
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {step.available_actions.map((action, actionIndex) => (
+                    <div key={`action-${stepIndex}-${actionIndex}`} className="flex gap-2">
+                      <input 
+                        type="text"
+                        value={action}
+                        onChange={(e) => updateWorkflowStepActions(stepIndex, actionIndex, e.target.value)}
+                        placeholder={`Action ${actionIndex + 1}`}
+                        className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                      />
+                      <button 
+                        onClick={() => removeActionFromStep(stepIndex, actionIndex)}
+                        className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
+                      >
+                        <Icons.X />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Security Elements */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-gray-400 font-mono text-xs">SECURITY ELEMENTS</label>
+                  <button 
+                    onClick={() => addSecurityElement(stepIndex)}
+                    className="px-2 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-xs"
+                  >
+                    <Icons.Plus className="inline mr-1" />
+                    ADD ELEMENT
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {step.security_elements.map((element, elementIndex) => (
+                    <div key={`element-${stepIndex}-${elementIndex}`} className="flex gap-2">
+                      <input 
+                        type="text"
+                        value={element}
+                        onChange={(e) => updateSecurityElements(stepIndex, elementIndex, e.target.value)}
+                        placeholder={`Security indicator ${elementIndex + 1}`}
+                        className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                      />
+                      <button 
+                        onClick={() => removeSecurityElement(stepIndex, elementIndex)}
+                        className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
+                      >
+                        <Icons.X />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-4">
+        <button 
+          onClick={() => setNewScenario({
+            title: '',
+            description: '',
+            system_context: { system_type: '', user_goals: [], environmental_factors: [], security_requirements: [], constraints: [] },
+            workflow_steps: [],
+            tasks: [],
+            success_criteria: [],
+            security_elements: []
+          })}
+          className="px-6 py-2 bg-gray-500/20 border border-gray-500 text-gray-400 rounded font-mono text-sm"
+        >
+          CLEAR FORM
+        </button>
+        <button 
+          onClick={saveScenario}
+          className="px-6 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm"
+        >
+          <Icons.Save className="inline mr-2" />
+          SAVE SCENARIO
+        </button>
+      </div>
+    </HolographicPanel>
+  );
+};
+
 const SciFiPersonaLab = () => {
   // Enhanced state management for simulation control
   const [activeTab, setActiveTab] = useState('personas');
@@ -409,24 +1088,6 @@ const SciFiPersonaLab = () => {
     setTimeout(() => runSimulation(), 100);
   };
 
-  // UI Components
-  const HolographicPanel: React.FC<{
-    children: React.ReactNode;
-    className?: string;
-    glow?: boolean;
-  }> = ({ children, className = "", glow = false }) => (
-    <div className={`
-      bg-black/20 backdrop-blur-md border border-cyan-500/30 rounded-lg relative
-      ${glow ? 'shadow-[0_0_20px_rgba(34,211,238,0.3)]' : ''}
-      ${className}
-    `}>
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 rounded-lg" />
-      <div className="relative z-10 p-4">
-        {children}
-      </div>
-    </div>
-  );
-
   const PersonaCard: React.FC<{
     persona: Persona;
     isSelected: boolean;
@@ -491,643 +1152,6 @@ const SciFiPersonaLab = () => {
       </div>
     </HolographicPanel>
   );
-
-  // FIXED: PersonaEditor with stable references to prevent typing issues
-  const PersonaEditor = () => {
-    if (!editingPersona) return null;
-
-    // Use useCallback to prevent recreation of handlers
-    const updatePersona = useCallback((field: string, value: any) => {
-      setEditingPersona(prev => prev ? { ...prev, [field]: value } : null);
-    }, []);
-
-    const updateDemographics = useCallback((field: string, value: any) => {
-      setEditingPersona(prev => prev ? {
-        ...prev,
-        demographics: { ...prev.demographics, [field]: value }
-      } : null);
-    }, []);
-
-    const updateSkills = useCallback((field: string, value: number) => {
-      setEditingPersona(prev => prev ? {
-        ...prev,
-        skills: { ...prev.skills, [field]: value }
-      } : null);
-    }, []);
-
-    const updateBehavioralPatterns = useCallback((index: number, value: string) => {
-      setEditingPersona(prev => {
-        if (!prev) return null;
-        const newPatterns = [...prev.behavioral_patterns];
-        newPatterns[index] = value;
-        return { ...prev, behavioral_patterns: newPatterns };
-      });
-    }, []);
-
-    const addBehavioralPattern = useCallback(() => {
-      setEditingPersona(prev => prev ? {
-        ...prev,
-        behavioral_patterns: [...prev.behavioral_patterns, '']
-      } : null);
-    }, []);
-
-    const removeBehavioralPattern = useCallback((index: number) => {
-      setEditingPersona(prev => prev ? {
-        ...prev,
-        behavioral_patterns: prev.behavioral_patterns.filter((_, i) => i !== index)
-      } : null);
-    }, []);
-
-    const savePersona = useCallback(() => {
-      if (!editingPersona) return;
-      
-      const existingIndex = personas.findIndex(p => p.id === editingPersona.id);
-      if (existingIndex >= 0) {
-        const updatedPersonas = [...personas];
-        updatedPersonas[existingIndex] = editingPersona;
-        setPersonas(updatedPersonas);
-      } else {
-        setPersonas(prev => [...prev, editingPersona]);
-      }
-      
-      setEditingPersona(null);
-    }, [editingPersona, personas]);
-
-    return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <HolographicPanel className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div className="text-cyan-400 font-mono font-bold text-lg">PERSONA EDITOR</div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={savePersona}
-                  className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm hover:bg-green-500/30"
-                >
-                  <Icons.Save className="inline mr-2" />
-                  SAVE
-                </button>
-                <button 
-                  onClick={() => setEditingPersona(null)}
-                  className="px-4 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded font-mono text-sm hover:bg-red-500/30"
-                >
-                  <Icons.X className="inline mr-2" />
-                  CANCEL
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Basic Info */}
-              <div className="space-y-4">
-                <div className="text-yellow-400 font-mono font-bold">BASIC INFO</div>
-                
-                <div>
-                  <label className="block text-gray-400 font-mono text-xs mb-1">NAME</label>
-                  <input 
-                    type="text"
-                    value={editingPersona.name}
-                    onChange={(e) => updatePersona('name', e.target.value)}
-                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 font-mono text-xs mb-1">TYPE</label>
-                  <select 
-                    value={editingPersona.type}
-                    onChange={(e) => updatePersona('type', e.target.value)}
-                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                  >
-                    <option value="THREAT_ACTOR">THREAT ACTOR</option>
-                    <option value="SECURITY_PRACTITIONER">SECURITY PRACTITIONER</option>
-                    <option value="REGULAR_USER">REGULAR USER</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 font-mono text-xs mb-1">SUBTYPE</label>
-                  <input 
-                    type="text"
-                    value={editingPersona.subtype}
-                    onChange={(e) => updatePersona('subtype', e.target.value)}
-                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Demographics */}
-              <div className="space-y-4">
-                <div className="text-yellow-400 font-mono font-bold">DEMOGRAPHICS</div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-400 font-mono text-xs mb-1">AGE</label>
-                    <input 
-                      type="number"
-                      value={editingPersona.demographics.age}
-                      onChange={(e) => updateDemographics('age', parseInt(e.target.value))}
-                      className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-400 font-mono text-xs mb-1">NATIONALITY</label>
-                    <input 
-                      type="text"
-                      value={editingPersona.demographics.nationality}
-                      onChange={(e) => updateDemographics('nationality', e.target.value)}
-                      className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 font-mono text-xs mb-1">LOCATION</label>
-                  <input 
-                    type="text"
-                    value={editingPersona.demographics.location}
-                    onChange={(e) => updateDemographics('location', e.target.value)}
-                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 font-mono text-xs mb-1">BACKGROUND</label>
-                  <textarea 
-                    value={editingPersona.demographics.background}
-                    onChange={(e) => updateDemographics('background', e.target.value)}
-                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 font-mono text-xs mb-1">LANGUAGES (comma separated)</label>
-                  <input 
-                    type="text"
-                    value={editingPersona.demographics.languages.join(', ')}
-                    onChange={(e) => updateDemographics('languages', e.target.value.split(', '))}
-                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Skills */}
-              <div className="space-y-4">
-                <div className="text-yellow-400 font-mono font-bold">SKILL MATRIX (1-5)</div>
-                
-                {Object.entries(editingPersona.skills).map(([skill, level]) => (
-                  <div key={skill}>
-                    <label className="block text-gray-400 font-mono text-xs mb-2">
-                      {skill.replace('_', ' ').toUpperCase()}
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="range"
-                        min="1"
-                        max="5"
-                        value={level}
-                        onChange={(e) => updateSkills(skill, parseInt(e.target.value))}
-                        className="flex-1"
-                      />
-                      <span className="text-cyan-400 font-mono text-sm w-8">{level}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Behavioral Patterns - FIXED: Using keys to prevent focus loss */}
-              <div className="space-y-4">
-                <div className="text-yellow-400 font-mono font-bold">BEHAVIORAL PATTERNS</div>
-                
-                {editingPersona.behavioral_patterns.map((pattern, index) => (
-                  <div key={`pattern-${index}`} className="flex gap-2">
-                    <input 
-                      type="text"
-                      value={pattern}
-                      onChange={(e) => updateBehavioralPatterns(index, e.target.value)}
-                      className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                    />
-                    <button 
-                      onClick={() => removeBehavioralPattern(index)}
-                      className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
-                    >
-                      <Icons.X />
-                    </button>
-                  </div>
-                ))}
-                
-                <button 
-                  onClick={addBehavioralPattern}
-                  className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm"
-                >
-                  <Icons.Plus className="inline mr-2" />
-                  ADD PATTERN
-                </button>
-              </div>
-
-              {/* Motivation */}
-              <div className="lg:col-span-2">
-                <div className="text-yellow-400 font-mono font-bold mb-2">MOTIVATION</div>
-                <textarea 
-                  value={editingPersona.motivation}
-                  onChange={(e) => updatePersona('motivation', e.target.value)}
-                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
-                  placeholder="What drives this persona's decisions and actions?"
-                />
-              </div>
-            </div>
-          </div>
-        </HolographicPanel>
-      </div>
-    );
-  };
-
-  // FIXED: ScenarioBuilder with stable references
-  const ScenarioBuilder = () => {
-    // Use useCallback to prevent function recreation
-    const updateNewScenario = useCallback((field: string, value: any) => {
-      setNewScenario(prev => ({ ...prev, [field]: value }));
-    }, []);
-
-    const updateSystemContext = useCallback((field: string, value: any) => {
-      setNewScenario(prev => ({
-        ...prev,
-        system_context: { ...prev.system_context, [field]: value }
-      }));
-    }, []);
-
-    const addWorkflowStep = useCallback(() => {
-      const newStep = {
-        id: Date.now(),
-        title: '',
-        interface_description: '',
-        user_prompt: '',
-        available_actions: [''],
-        system_responses: {},
-        security_elements: [''],
-        decision_points: []
-      };
-      setNewScenario(prev => ({
-        ...prev,
-        workflow_steps: [...prev.workflow_steps, newStep]
-      }));
-    }, []);
-
-    const updateWorkflowStep = useCallback((index: number, field: string, value: any) => {
-      setNewScenario(prev => ({
-        ...prev,
-        workflow_steps: prev.workflow_steps.map((step, i) => 
-          i === index ? { ...step, [field]: value } : step
-        )
-      }));
-    }, []);
-
-    const removeWorkflowStep = useCallback((index: number) => {
-      setNewScenario(prev => ({
-        ...prev,
-        workflow_steps: prev.workflow_steps.filter((_, i) => i !== index)
-      }));
-    }, []);
-
-    const updateWorkflowStepActions = useCallback((stepIndex: number, actionIndex: number, value: string) => {
-      setNewScenario(prev => ({
-        ...prev,
-        workflow_steps: prev.workflow_steps.map((step, i) => 
-          i === stepIndex ? {
-            ...step,
-            available_actions: step.available_actions.map((action, j) => 
-              j === actionIndex ? value : action
-            )
-          } : step
-        )
-      }));
-    }, []);
-
-    const addActionToStep = useCallback((stepIndex: number) => {
-      setNewScenario(prev => ({
-        ...prev,
-        workflow_steps: prev.workflow_steps.map((step, i) => 
-          i === stepIndex ? {
-            ...step,
-            available_actions: [...step.available_actions, '']
-          } : step
-        )
-      }));
-    }, []);
-
-    const removeActionFromStep = useCallback((stepIndex: number, actionIndex: number) => {
-      setNewScenario(prev => ({
-        ...prev,
-        workflow_steps: prev.workflow_steps.map((step, i) => 
-          i === stepIndex ? {
-            ...step,
-            available_actions: step.available_actions.filter((_, j) => j !== actionIndex)
-          } : step
-        )
-      }));
-    }, []);
-
-    const updateSecurityElements = useCallback((stepIndex: number, elementIndex: number, value: string) => {
-      setNewScenario(prev => ({
-        ...prev,
-        workflow_steps: prev.workflow_steps.map((step, i) => 
-          i === stepIndex ? {
-            ...step,
-            security_elements: step.security_elements.map((element, j) => 
-              j === elementIndex ? value : element
-            )
-          } : step
-        )
-      }));
-    }, []);
-
-    const addSecurityElement = useCallback((stepIndex: number) => {
-      setNewScenario(prev => ({
-        ...prev,
-        workflow_steps: prev.workflow_steps.map((step, i) => 
-          i === stepIndex ? {
-            ...step,
-            security_elements: [...step.security_elements, '']
-          } : step
-        )
-      }));
-    }, []);
-
-    const removeSecurityElement = useCallback((stepIndex: number, elementIndex: number) => {
-      setNewScenario(prev => ({
-        ...prev,
-        workflow_steps: prev.workflow_steps.map((step, i) => 
-          i === stepIndex ? {
-            ...step,
-            security_elements: step.security_elements.filter((_, j) => j !== elementIndex)
-          } : step
-        )
-      }));
-    }, []);
-
-    const saveScenario = useCallback(() => {
-      if (!newScenario.title.trim()) {
-        alert('Please enter a scenario title');
-        return;
-      }
-      
-      const scenarioToSave = {
-        ...newScenario,
-        id: Date.now()
-      };
-      
-      setScenarios(prev => [...prev, scenarioToSave]);
-      
-      // Reset form
-      setNewScenario({
-        title: '',
-        description: '',
-        system_context: {
-          system_type: '',
-          user_goals: [],
-          environmental_factors: [],
-          security_requirements: [],
-          constraints: []
-        },
-        workflow_steps: [],
-        tasks: [],
-        success_criteria: [],
-        security_elements: []
-      });
-      
-      alert('Scenario saved successfully!');
-    }, [newScenario]);
-
-    return (
-      <HolographicPanel glow className="space-y-6">
-        <div className="text-cyan-400 font-mono font-bold text-lg">SCENARIO DEFINITION MATRIX</div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-gray-400 font-mono text-xs mb-1">SCENARIO TITLE</label>
-              <input 
-                type="text"
-                value={newScenario.title}
-                onChange={(e) => updateNewScenario('title', e.target.value)}
-                placeholder="e.g., CORPORATE EMAIL RESPONSE"
-                className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-400 font-mono text-xs mb-1">DESCRIPTION</label>
-              <textarea 
-                value={newScenario.description}
-                onChange={(e) => updateNewScenario('description', e.target.value)}
-                placeholder="Describe the security scenario..."
-                className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-400 font-mono text-xs mb-1">SYSTEM TYPE</label>
-              <select 
-                value={newScenario.system_context.system_type}
-                onChange={(e) => updateSystemContext('system_type', e.target.value)}
-                className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-              >
-                <option value="">SELECT SYSTEM TYPE</option>
-                <option value="web-application">WEB APPLICATION</option>
-                <option value="mobile-app">MOBILE APPLICATION</option>
-                <option value="email-system">EMAIL SYSTEM</option>
-                <option value="banking-system">BANKING SYSTEM</option>
-                <option value="social-media">SOCIAL MEDIA PLATFORM</option>
-                <option value="iot-device">IOT DEVICE</option>
-                <option value="cloud-service">CLOUD SERVICE</option>
-                <option value="enterprise-network">ENTERPRISE NETWORK</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-gray-400 font-mono text-xs mb-1">USER GOALS</label>
-              <textarea 
-                placeholder="What are users trying to accomplish?"
-                className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-400 font-mono text-xs mb-1">ENVIRONMENTAL FACTORS</label>
-              <textarea 
-                placeholder="Time pressure, distractions, context..."
-                className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-400 font-mono text-xs mb-1">SECURITY REQUIREMENTS</label>
-              <textarea 
-                placeholder="Authentication, authorization, data protection..."
-                className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Workflow Steps */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <div className="text-yellow-400 font-mono font-bold">WORKFLOW STEPS</div>
-            <button 
-              onClick={addWorkflowStep}
-              className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm"
-            >
-              <Icons.Plus className="inline mr-2" />
-              ADD STEP
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            {newScenario.workflow_steps.map((step, stepIndex) => (
-              <div key={`step-${step.id}`} className="border border-gray-600 rounded p-4 bg-gray-900/50">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="text-cyan-400 font-mono font-bold text-sm">STEP {stepIndex + 1}</div>
-                  <button 
-                    onClick={() => removeWorkflowStep(stepIndex)}
-                    className="text-red-400 hover:text-red-300"
-                  >
-                    <Icons.X />
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-gray-400 font-mono text-xs mb-1">STEP TITLE</label>
-                    <input 
-                      type="text"
-                      value={step.title}
-                      onChange={(e) => updateWorkflowStep(stepIndex, 'title', e.target.value)}
-                      placeholder="e.g., Email Authentication Check"
-                      className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-400 font-mono text-xs mb-1">INTERFACE DESCRIPTION</label>
-                    <textarea 
-                      value={step.interface_description}
-                      onChange={(e) => updateWorkflowStep(stepIndex, 'interface_description', e.target.value)}
-                      placeholder="Describe what the user sees..."
-                      className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-gray-400 font-mono text-xs mb-1">USER PROMPT</label>
-                  <textarea 
-                    value={step.user_prompt}
-                    onChange={(e) => updateWorkflowStep(stepIndex, 'user_prompt', e.target.value)}
-                    placeholder="What specific situation/content does the user encounter?"
-                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
-                  />
-                </div>
-
-                {/* Available Actions */}
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-gray-400 font-mono text-xs">AVAILABLE ACTIONS</label>
-                    <button 
-                      onClick={() => addActionToStep(stepIndex)}
-                      className="px-2 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-xs"
-                    >
-                      <Icons.Plus className="inline mr-1" />
-                      ADD ACTION
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {step.available_actions.map((action, actionIndex) => (
-                      <div key={`action-${stepIndex}-${actionIndex}`} className="flex gap-2">
-                        <input 
-                          type="text"
-                          value={action}
-                          onChange={(e) => updateWorkflowStepActions(stepIndex, actionIndex, e.target.value)}
-                          placeholder={`Action ${actionIndex + 1}`}
-                          className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                        />
-                        <button 
-                          onClick={() => removeActionFromStep(stepIndex, actionIndex)}
-                          className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
-                        >
-                          <Icons.X />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Security Elements */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-gray-400 font-mono text-xs">SECURITY ELEMENTS</label>
-                    <button 
-                      onClick={() => addSecurityElement(stepIndex)}
-                      className="px-2 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-xs"
-                    >
-                      <Icons.Plus className="inline mr-1" />
-                      ADD ELEMENT
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {step.security_elements.map((element, elementIndex) => (
-                      <div key={`element-${stepIndex}-${elementIndex}`} className="flex gap-2">
-                        <input 
-                          type="text"
-                          value={element}
-                          onChange={(e) => updateSecurityElements(stepIndex, elementIndex, e.target.value)}
-                          placeholder={`Security indicator ${elementIndex + 1}`}
-                          className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                        />
-                        <button 
-                          onClick={() => removeSecurityElement(stepIndex, elementIndex)}
-                          className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
-                        >
-                          <Icons.X />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-4">
-          <button 
-            onClick={() => setNewScenario({
-              title: '',
-              description: '',
-              system_context: { system_type: '', user_goals: [], environmental_factors: [], security_requirements: [], constraints: [] },
-              workflow_steps: [],
-              tasks: [],
-              success_criteria: [],
-              security_elements: []
-            })}
-            className="px-6 py-2 bg-gray-500/20 border border-gray-500 text-gray-400 rounded font-mono text-sm"
-          >
-            CLEAR FORM
-          </button>
-          <button 
-            onClick={saveScenario}
-            className="px-6 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm"
-          >
-            <Icons.Save className="inline mr-2" />
-            SAVE SCENARIO
-          </button>
-        </div>
-      </HolographicPanel>
-    );
-  };
 
   // Enhanced simulation control with proper validation and state management
   const SimulationControl = () => {
@@ -1394,7 +1418,12 @@ const SciFiPersonaLab = () => {
       />
       
       {/* Persona Editor Modal */}
-      <PersonaEditor />
+      <PersonaEditor 
+        editingPersona={editingPersona}
+        personas={personas}
+        setEditingPersona={setEditingPersona}
+        setPersonas={setPersonas}
+      />
       
       {/* Main Interface */}
       <div className="relative z-10 p-6 space-y-6">
@@ -1491,7 +1520,12 @@ const SciFiPersonaLab = () => {
             </div>
 
             {/* Scenario Builder */}
-            <ScenarioBuilder />
+            <ScenarioBuilder 
+              newScenario={newScenario}
+              setNewScenario={setNewScenario}
+              scenarios={scenarios}
+              setScenarios={setScenarios}
+            />
 
             {/* Custom Scenarios List */}
             {scenarios.length > 0 && (
