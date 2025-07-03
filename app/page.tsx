@@ -218,7 +218,7 @@ const SciFiPersonaLab = () => {
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
       
       ctx.fillStyle = '#00ff41';
-      ctx.font = fontSize + 'px monospace';
+      ctx.font = `bold ${fontSize}px monospace`;
 
       for (let i = 0; i < drops.length; i++) {
         const text = matrixArray[Math.floor(Math.random() * matrixArray.length)];
