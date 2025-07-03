@@ -1,5 +1,4 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
+This project is about creating a testbed for understanding user behaviors.
 ## Getting Started
 
 First, run the development server:
