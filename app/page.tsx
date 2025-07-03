@@ -886,7 +886,7 @@ const SciFiPersonaLab = () => {
                 type="text"
                 value={newScenario.title}
                 onChange={(e) => setNewScenario(prev => ({...prev, title: e.target.value}))}
-                placeholder="e.g., CORPORATE EMAIL PHISHING RESPONSE"
+                placeholder="e.g., CORPORATE EMAIL  RESPONSE"
                 className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
               />
             </div>
