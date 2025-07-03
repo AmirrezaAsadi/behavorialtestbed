@@ -1439,7 +1439,7 @@ const SciFiPersonaLab = () => {
             <HolographicPanel>
               <div className="text-cyan-400 font-mono font-bold text-sm mb-4">DEFAULT SCENARIO</div>
               <div className="border border-cyan-500/30 rounded p-3 bg-cyan-500/10">
-                <div className="text-cyan-400 font-mono font-bold text-sm">Email Phishing Response</div>
+                <div className="text-cyan-400 font-mono font-bold text-sm">Email Response</div>
                 <div className="text-gray-400 font-mono text-xs mt-1">Employee receives suspicious email and must decide how to respond</div>
                 <div className="text-yellow-400 font-mono text-xs mt-2">
                   2 WORKFLOW STEPS | EMAIL_SYSTEM | BUILT-IN
