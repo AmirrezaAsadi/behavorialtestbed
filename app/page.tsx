@@ -1347,7 +1347,7 @@ const SciFiPersonaLab = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-mono font-bold text-cyan-400 mb-2 tracking-wider">
-            PERSONA SECURITY LAB
+            Persona Crash LAB
           </h1>
           <div className="text-sm font-mono text-gray-400">
             LLM-DRIVEN BEHAVIORAL TESTBED • SECURITY SIMULATION MATRIX
