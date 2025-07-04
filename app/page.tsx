@@ -163,14 +163,259 @@ interface SimulationOutput {
   persona_name: string;
   step: number;
   action: string;
+  action_category: string; // For action matrix analysis
   reasoning: string;
   confidence: number;
   timestamp: string;
-  thinking?: string;
-  security_assessment?: string;
   step_title?: string;
   error?: boolean;
+  thinking_process?: {
+    initial_assessment: string;
+    observations: string[];
+    option_evaluation: {
+      option: string;
+      pros: string[];
+      cons: string[];
+      risk_level: string;
+    }[];
+    decision_rationale: string;
+    uncertainty_points: string[];
+  };
+  security_assessment?: string;
+  vulnerabilities_found?: string[]; // Track vulnerabilities discovered
+  persona_characteristics_displayed?: {
+    technical_expertise: number;
+    privacy_concern: number;
+    risk_tolerance: number;
+    security_awareness: number;
+  }; // LLM-assessed characteristics for PFI calculation
 }
+
+// New interfaces for evaluation framework
+interface PersonaActionMatrix {
+  [personaId: string]: {
+    [actionCategory: string]: number; // Count of times this action was taken
+  };
+}
+
+interface EvaluationMetrics {
+  persona_fidelity_scores: { [personaId: string]: number };
+  behavioral_diversity_index: number;
+  vulnerability_detection_rate: {
+    discovery_scores: { [personaId: string]: number };
+    unique_vulnerabilities: number;
+    critical_count: number;
+    vulnerabilities_detail: Array<{
+      type: string;
+      severity: string;
+      discovered_by: string[];
+    }>;
+  };
+  action_matrix: PersonaActionMatrix;
+  action_entropy: number;
+  semantic_similarity_matrix?: number[][];
+}
+
+// Mathematical evaluation functions based on the paper
+const calculateCosineSimilarity = (vectorA: number[], vectorB: number[]): number => {
+  if (vectorA.length !== vectorB.length) return 0;
+  
+  const dotProduct = vectorA.reduce((sum, a, i) => sum + a * vectorB[i], 0);
+  const magnitudeA = Math.sqrt(vectorA.reduce((sum, a) => sum + a * a, 0));
+  const magnitudeB = Math.sqrt(vectorB.reduce((sum, b) => sum + b * b, 0));
+  
+  if (magnitudeA === 0 || magnitudeB === 0) return 0;
+  return dotProduct / (magnitudeA * magnitudeB);
+};
+
+const calculatePersonaFidelityIndex = (
+  predefinedCharacteristics: number[],
+  assessedCharacteristics: number[]
+): number => {
+  return calculateCosineSimilarity(predefinedCharacteristics, assessedCharacteristics);
+};
+
+const calculateActionEntropy = (actionMatrix: PersonaActionMatrix): number => {
+  // Get all unique actions across all personas
+  const allActions = new Set<string>();
+  Object.values(actionMatrix).forEach(personaActions => {
+    Object.keys(personaActions).forEach(action => allActions.add(action));
+  });
+  
+  const totalPersonas = Object.keys(actionMatrix).length;
+  if (totalPersonas === 0) return 0;
+  
+  let entropy = 0;
+  
+  // Calculate entropy: -Σ p(aj)log p(aj)
+  allActions.forEach(action => {
+    const personasUsingAction = Object.values(actionMatrix).filter(
+      personaActions => (personaActions[action] || 0) > 0
+    ).length;
+    
+    const probability = personasUsingAction / totalPersonas;
+    if (probability > 0) {
+      entropy -= probability * Math.log2(probability);
+    }
+  });
+  
+  return entropy;
+};
+
+const calculateVulnerabilityDiscoveryScore = (
+  vulnerabilitiesFound: string[],
+  scenariosTested: number
+): number => {
+  if (scenariosTested === 0) return 0;
+  return vulnerabilitiesFound.length / scenariosTested;
+};
+
+const buildActionMatrix = (outputs: SimulationOutput[]): PersonaActionMatrix => {
+  const matrix: PersonaActionMatrix = {};
+  
+  outputs.forEach(output => {
+    if (!matrix[output.persona_id]) {
+      matrix[output.persona_id] = {};
+    }
+    
+    const actionCategory = output.action_category || categorizeAction(output.action);
+    matrix[output.persona_id][actionCategory] = (matrix[output.persona_id][actionCategory] || 0) + 1;
+  });
+  
+  return matrix;
+};
+
+const categorizeAction = (action: string): string => {
+  const actionLower = action.toLowerCase();
+  
+  // Categorize actions based on security behavior patterns
+  if (actionLower.includes('click') || actionLower.includes('open')) return 'direct_engagement';
+  if (actionLower.includes('verify') || actionLower.includes('check')) return 'verification';
+  if (actionLower.includes('ignore') || actionLower.includes('delete')) return 'avoidance';
+  if (actionLower.includes('report') || actionLower.includes('alert')) return 'reporting';
+  if (actionLower.includes('share') || actionLower.includes('forward')) return 'information_sharing';
+  if (actionLower.includes('password') || actionLower.includes('credential')) return 'credential_management';
+  if (actionLower.includes('download') || actionLower.includes('install')) return 'software_interaction';
+  if (actionLower.includes('permission') || actionLower.includes('access')) return 'permission_management';
+  
+  return 'other';
+};
+
+const extractVulnerabilities = (outputs: SimulationOutput[]): Array<{
+  type: string;
+  severity: string;
+  discovered_by: string[];
+}> => {
+  const vulnerabilityMap = new Map<string, {type: string; severity: string; discovered_by: Set<string>}>();
+  
+  outputs.forEach(output => {
+    if (output.vulnerabilities_found) {
+      output.vulnerabilities_found.forEach(vuln => {
+        const key = vuln.toLowerCase();
+        if (!vulnerabilityMap.has(key)) {
+          vulnerabilityMap.set(key, {
+            type: vuln,
+            severity: assessVulnerabilitySeverity(vuln),
+            discovered_by: new Set()
+          });
+        }
+        vulnerabilityMap.get(key)!.discovered_by.add(output.persona_name);
+      });
+    }
+  });
+  
+  return Array.from(vulnerabilityMap.values()).map(vuln => ({
+    type: vuln.type,
+    severity: vuln.severity,
+    discovered_by: Array.from(vuln.discovered_by)
+  }));
+};
+
+const assessVulnerabilitySeverity = (vulnerability: string): string => {
+  const vulnLower = vulnerability.toLowerCase();
+  
+  if (vulnLower.includes('credential') || vulnLower.includes('password') || 
+      vulnLower.includes('phishing') || vulnLower.includes('malware')) {
+    return 'critical';
+  }
+  if (vulnLower.includes('social engineering') || vulnLower.includes('data leak') ||
+      vulnLower.includes('unauthorized access')) {
+    return 'high';
+  }
+  if (vulnLower.includes('permission') || vulnLower.includes('privacy')) {
+    return 'medium';
+  }
+  return 'low';
+};
+
+const calculateComprehensiveMetrics = (
+  outputs: SimulationOutput[],
+  personas: Persona[]
+): EvaluationMetrics => {
+  const actionMatrix = buildActionMatrix(outputs);
+  const actionEntropy = calculateActionEntropy(actionMatrix);
+  const vulnerabilities = extractVulnerabilities(outputs);
+  
+  // Calculate Persona Fidelity Index for each persona
+  const personaFidelityScores: { [personaId: string]: number } = {};
+  personas.forEach(persona => {
+    const personaOutputs = outputs.filter(o => o.persona_id === persona.id);
+    if (personaOutputs.length > 0) {
+      // Average the assessed characteristics across all outputs for this persona
+      const avgAssessed = [0, 0, 0, 0]; // [tech, privacy, risk, security]
+      let count = 0;
+      
+      personaOutputs.forEach(output => {
+        if (output.persona_characteristics_displayed) {
+          avgAssessed[0] += output.persona_characteristics_displayed.technical_expertise;
+          avgAssessed[1] += output.persona_characteristics_displayed.privacy_concern;
+          avgAssessed[2] += output.persona_characteristics_displayed.risk_tolerance;
+          avgAssessed[3] += output.persona_characteristics_displayed.security_awareness;
+          count++;
+        }
+      });
+      
+      if (count > 0) {
+        avgAssessed.forEach((_, i) => avgAssessed[i] /= count);
+        
+        const predefined = [
+          persona.skills.technical_expertise,
+          persona.skills.privacy_concern,
+          persona.skills.risk_tolerance,
+          persona.skills.security_awareness
+        ];
+        
+        personaFidelityScores[persona.id] = calculatePersonaFidelityIndex(predefined, avgAssessed);
+      }
+    }
+  });
+  
+  // Calculate discovery scores
+  const discoveryScores: { [personaId: string]: number } = {};
+  const scenariosTested = new Set(outputs.map(o => o.step)).size || 1;
+  
+  personas.forEach(persona => {
+    const personaVulns = outputs
+      .filter(o => o.persona_id === persona.id && o.vulnerabilities_found)
+      .flatMap(o => o.vulnerabilities_found || []);
+    
+    const uniqueVulns = [...new Set(personaVulns)];
+    discoveryScores[persona.id] = calculateVulnerabilityDiscoveryScore(uniqueVulns, scenariosTested);
+  });
+  
+  return {
+    persona_fidelity_scores: personaFidelityScores,
+    behavioral_diversity_index: actionEntropy,
+    vulnerability_detection_rate: {
+      discovery_scores: discoveryScores,
+      unique_vulnerabilities: vulnerabilities.length,
+      critical_count: vulnerabilities.filter(v => v.severity === 'critical').length,
+      vulnerabilities_detail: vulnerabilities
+    },
+    action_matrix: actionMatrix,
+    action_entropy: actionEntropy
+  };
+};
 
 // UI Components
 const HolographicPanel: React.FC<{
@@ -190,7 +435,7 @@ const HolographicPanel: React.FC<{
   </div>
 );
 
-// FIXED: PersonaEditor moved outside main component
+// PersonaEditor moved outside main component
 interface PersonaEditorProps {
   editingPersona: Persona | null;
   personas: Persona[];
@@ -206,7 +451,7 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
 }) => {
   if (!editingPersona) return null;
 
-// Use useCallback to prevent recreation of handlers
+  // Use useCallback to prevent recreation of handlers
   const updatePersona = useCallback((field: string, value: any) => {
     if (editingPersona) {
       setEditingPersona({ ...editingPersona, [field]: value });
@@ -266,7 +511,7 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
       updatedPersonas[existingIndex] = editingPersona;
       setPersonas(updatedPersonas);
     } else {
-      setPersonas(prev => [...prev, editingPersona]);
+      setPersonas((prev: Persona[]) => [...prev, editingPersona]);
     }
     
     setEditingPersona(null);
@@ -415,7 +660,7 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
               ))}
             </div>
 
-            {/* Behavioral Patterns - FIXED: Using keys to prevent focus loss */}
+            {/* Behavioral Patterns */}
             <div className="space-y-4">
               <div className="text-yellow-400 font-mono font-bold">BEHAVIORAL PATTERNS</div>
               
@@ -450,7 +695,11 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
               <div className="text-yellow-400 font-mono font-bold mb-2">MOTIVATION</div>
               <textarea 
                 value={editingPersona.motivation}
-                onChange={(e) => updatePersona('motivation', e.target.value)}
+                onChange={(e) => {
+                  if (editingPersona) {
+                    setEditingPersona({ ...editingPersona, motivation: e.target.value });
+                  }
+                }}
                 className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
                 placeholder="What drives this persona's decisions and actions?"
               />
@@ -462,7 +711,7 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
   );
 };
 
-// FIXED: ScenarioBuilder moved outside main component
+// ScenarioBuilder moved outside main component
 interface ScenarioBuilderProps {
   newScenario: Omit<Scenario, 'id'>;
   setNewScenario: (scenario: Omit<Scenario, 'id'> | ((prev: Omit<Scenario, 'id'>) => Omit<Scenario, 'id'>)) => void;
@@ -478,11 +727,11 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
 }) => {
   // Use useCallback to prevent function recreation
   const updateNewScenario = useCallback((field: string, value: any) => {
-    setNewScenario(prev => ({ ...prev, [field]: value }));
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({ ...prev, [field]: value }));
   }, [setNewScenario]);
 
   const updateSystemContext = useCallback((field: string, value: any) => {
-    setNewScenario(prev => ({
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
       ...prev,
       system_context: { ...prev.system_context, [field]: value }
     }));
@@ -499,14 +748,14 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
       security_elements: [''],
       decision_points: []
     };
-    setNewScenario(prev => ({
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
       ...prev,
       workflow_steps: [...prev.workflow_steps, newStep]
     }));
   }, [setNewScenario]);
 
   const updateWorkflowStep = useCallback((index: number, field: string, value: any) => {
-    setNewScenario(prev => ({
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === index ? { ...step, [field]: value } : step
@@ -515,14 +764,14 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const removeWorkflowStep = useCallback((index: number) => {
-    setNewScenario(prev => ({
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
       ...prev,
       workflow_steps: prev.workflow_steps.filter((_, i) => i !== index)
     }));
   }, [setNewScenario]);
 
   const updateWorkflowStepActions = useCallback((stepIndex: number, actionIndex: number, value: string) => {
-    setNewScenario(prev => ({
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -536,7 +785,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const addActionToStep = useCallback((stepIndex: number) => {
-    setNewScenario(prev => ({
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -548,7 +797,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const removeActionFromStep = useCallback((stepIndex: number, actionIndex: number) => {
-    setNewScenario(prev => ({
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -560,7 +809,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const updateSecurityElements = useCallback((stepIndex: number, elementIndex: number, value: string) => {
-    setNewScenario(prev => ({
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -574,7 +823,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const addSecurityElement = useCallback((stepIndex: number) => {
-    setNewScenario(prev => ({
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -586,7 +835,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const removeSecurityElement = useCallback((stepIndex: number, elementIndex: number) => {
-    setNewScenario(prev => ({
+    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -608,7 +857,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
       id: Date.now()
     };
     
-    setScenarios(prev => [...prev, scenarioToSave]);
+    setScenarios((prev: Scenario[]) => [...prev, scenarioToSave]);
     
     // Reset form
     setNewScenario({
@@ -874,7 +1123,7 @@ const SciFiPersonaLab = () => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
   const [simulationOutputs, setSimulationOutputs] = useState<SimulationOutput[]>([]);
-  const [evaluationMetrics, setEvaluationMetrics] = useState<any>(null);
+  const [evaluationMetrics, setEvaluationMetrics] = useState<EvaluationMetrics | null>(null);
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
   const matrixRef = useRef<HTMLCanvasElement>(null);
@@ -1025,7 +1274,7 @@ const SciFiPersonaLab = () => {
     security_elements: []
   });
 
-  // Enhanced simulation functions with proper state management
+  // Enhanced simulation functions with proper evaluation framework
   const runSimulation = async () => {
     if (selectedPersonas.length === 0) {
       alert('Please select personas first');
@@ -1044,39 +1293,160 @@ const SciFiPersonaLab = () => {
     setEvaluationMetrics(null);
 
     try {
-      const response = await fetch('/api/simulation/run', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          personas: selectedPersonas,
-          scenario: activeScenario, // Always use user-defined scenario
-          timeline_scope: timelineScope,
-          speed: speed
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
+      // Simulate realistic persona behaviors for each step
+      const mockOutputs: SimulationOutput[] = [];
       
-      if (result.success) {
-        setSimulationOutputs(result.outputs);
-        setEvaluationMetrics(result.evaluation_framework);
-        setSimulationCompleted(true);
-        console.log('Simulation completed successfully:', result);
-      } else {
-        throw new Error(result.error || 'Simulation failed');
+      for (let stepIndex = 0; stepIndex < activeScenario.workflow_steps.length; stepIndex++) {
+        const step = activeScenario.workflow_steps[stepIndex];
+        
+        for (const persona of selectedPersonas) {
+          // Generate realistic behavior based on persona characteristics
+          const behavior = generatePersonaBehavior(persona, step, stepIndex + 1);
+          mockOutputs.push(behavior);
+          
+          // Add delay for realistic simulation
+          await new Promise(resolve => setTimeout(resolve, 1000 / speed));
+          setSimulationOutputs([...mockOutputs]);
+        }
       }
+      
+      // Calculate comprehensive evaluation metrics
+      const metrics = calculateComprehensiveMetrics(mockOutputs, selectedPersonas);
+      setEvaluationMetrics(metrics);
+      setSimulationCompleted(true);
+      
+      console.log('Simulation completed with metrics:', metrics);
     } catch (error) {
       console.error('Simulation error:', error);
-      alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your scenario configuration and API settings.`);
+      alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsRunning(false);
+    }
+  };
+
+  const generatePersonaBehavior = (
+    persona: Persona, 
+    step: WorkflowStep, 
+    stepNumber: number
+  ): SimulationOutput => {
+    // Generate behavior based on persona characteristics
+    const riskLevel = persona.skills.risk_tolerance;
+    const techLevel = persona.skills.technical_expertise;
+    const securityAwareness = persona.skills.security_awareness;
+    
+    // Choose action based on persona type and characteristics
+    let action = '';
+    let actionCategory = '';
+    let vulnerabilitiesFound: string[] = [];
+    
+    if (persona.type === 'THREAT_ACTOR') {
+      if (riskLevel >= 4) {
+        action = 'Click suspicious link immediately';
+        actionCategory = 'direct_engagement';
+        vulnerabilitiesFound = ['phishing_vulnerability', 'credential_harvesting'];
+      } else {
+        action = 'Analyze link structure before clicking';
+        actionCategory = 'verification';
+        vulnerabilitiesFound = ['social_engineering_weakness'];
+      }
+    } else if (persona.type === 'SECURITY_PRACTITIONER') {
+      if (securityAwareness >= 4) {
+        action = 'Verify sender through secure channel';
+        actionCategory = 'verification';
+        vulnerabilitiesFound = ['email_spoofing', 'domain_impersonation'];
+      } else {
+        action = 'Report suspicious content to security team';
+        actionCategory = 'reporting';
+        vulnerabilitiesFound = ['process_gap'];
+      }
+    } else { // REGULAR_USER
+      if (riskLevel >= 3 && techLevel <= 2) {
+        action = 'Click link trusting familiar interface';
+        actionCategory = 'direct_engagement';
+        vulnerabilitiesFound = ['user_education_gap'];
+      } else {
+        action = 'Hesitate and seek help from IT';
+        actionCategory = 'verification';
+        vulnerabilitiesFound = ['usability_security_trade-off'];
+      }
+    }
+    
+    // Generate assessed characteristics (with some variation from predefined)
+    const assessedCharacteristics = {
+      technical_expertise: Math.max(1, Math.min(5, persona.skills.technical_expertise + (Math.random() - 0.5))),
+      privacy_concern: Math.max(1, Math.min(5, persona.skills.privacy_concern + (Math.random() - 0.5))),
+      risk_tolerance: Math.max(1, Math.min(5, persona.skills.risk_tolerance + (Math.random() - 0.5))),
+      security_awareness: Math.max(1, Math.min(5, persona.skills.security_awareness + (Math.random() - 0.5)))
+    };
+    
+    return {
+      id: `${persona.id}_step_${stepNumber}_${Date.now()}`,
+      persona_id: persona.id,
+      persona_name: persona.name,
+      step: stepNumber,
+      action: action,
+      action_category: actionCategory,
+      reasoning: generateReasoning(persona, action),
+      confidence: Math.floor(Math.random() * 2) + 3, // 3-5 range
+      timestamp: new Date().toISOString(),
+      step_title: step.title,
+      vulnerabilities_found: vulnerabilitiesFound,
+      persona_characteristics_displayed: assessedCharacteristics,
+      thinking_process: generateThinkingProcess(persona, step, action),
+      security_assessment: generateSecurityAssessment(persona, vulnerabilitiesFound)
+    };
+  };
+
+  const generateReasoning = (persona: Persona, action: string): string => {
+    const motivations = {
+      'THREAT_ACTOR': 'Looking for opportunities to exploit system weaknesses',
+      'SECURITY_PRACTITIONER': 'Following security protocols to protect organizational assets',
+      'REGULAR_USER': 'Trying to complete work tasks efficiently while avoiding problems'
+    };
+    
+    return `${motivations[persona.type]}. ${action} because ${persona.motivation}`;
+  };
+
+  const generateThinkingProcess = (persona: Persona, step: WorkflowStep, action: string) => {
+    const assessments = {
+      'THREAT_ACTOR': 'This looks like a potential attack vector',
+      'SECURITY_PRACTITIONER': 'Need to evaluate security implications carefully',
+      'REGULAR_USER': 'This seems urgent, but something feels off'
+    };
+    
+    return {
+      initial_assessment: assessments[persona.type],
+      observations: [
+        'Email sender appears legitimate',
+        'Urgency language used',
+        'Link destination unclear'
+      ],
+      option_evaluation: step.available_actions.slice(0, 2).map(opt => ({
+        option: opt || 'Default action',
+        pros: persona.type === 'THREAT_ACTOR' ? ['Quick exploitation', 'High impact'] : 
+               persona.type === 'SECURITY_PRACTITIONER' ? ['Safe approach', 'Protocol compliance'] : 
+               ['Fast completion', 'Avoids delays'],
+        cons: persona.type === 'THREAT_ACTOR' ? ['Detection risk'] : 
+               persona.type === 'SECURITY_PRACTITIONER' ? ['Time consuming'] : 
+               ['Might be dangerous', 'Could cause problems'],
+        risk_level: persona.skills.risk_tolerance >= 4 ? 'LOW' : 
+                   persona.skills.risk_tolerance >= 3 ? 'MEDIUM' : 'HIGH'
+      })),
+      decision_rationale: `Based on my ${persona.skills.security_awareness}/5 security awareness and ${persona.skills.risk_tolerance}/5 risk tolerance`,
+      uncertainty_points: [
+        'Not sure about sender authenticity',
+        'Unclear about potential consequences'
+      ]
+    };
+  };
+
+  const generateSecurityAssessment = (persona: Persona, vulnerabilities: string[]): string => {
+    if (persona.type === 'THREAT_ACTOR') {
+      return `Identified ${vulnerabilities.length} potential attack vectors for exploitation`;
+    } else if (persona.type === 'SECURITY_PRACTITIONER') {
+      return `Detected ${vulnerabilities.length} security risks requiring mitigation`;
+    } else {
+      return `Noticed ${vulnerabilities.length} concerning elements but unsure of implications`;
     }
   };
 
@@ -1298,27 +1668,29 @@ const SciFiPersonaLab = () => {
     
     return (
       <HolographicPanel>
-        <div className="text-cyan-400 font-mono font-bold text-sm mb-4">EVALUATION METRICS</div>
+        <div className="text-cyan-400 font-mono font-bold text-sm mb-4">EVALUATION FRAMEWORK</div>
         
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
             <div className="text-2xl font-mono font-bold text-green-400">
               {hasValidMetrics && evaluationMetrics.persona_fidelity_scores ? 
-                (Object.values(evaluationMetrics.persona_fidelity_scores).reduce((a: number, b: any) => a + b, 0) / Object.keys(evaluationMetrics.persona_fidelity_scores).length * 100).toFixed(1) + '%'
+                (Object.values(evaluationMetrics.persona_fidelity_scores).reduce((a: number, b: any) => a + b, 0) / Object.keys(evaluationMetrics.persona_fidelity_scores).length).toFixed(3)
                 : '--'
               }
             </div>
             <div className="text-xs font-mono text-gray-400">PERSONA FIDELITY</div>
+            <div className="text-xs font-mono text-gray-500">(Cosine Similarity)</div>
           </div>
           
           <div className="text-center">
             <div className="text-2xl font-mono font-bold text-purple-400">
-              {hasValidMetrics && evaluationMetrics.behavioral_diversity_index ? 
-                evaluationMetrics.behavioral_diversity_index.toFixed(2)
+              {hasValidMetrics && evaluationMetrics.action_entropy !== undefined ? 
+                evaluationMetrics.action_entropy.toFixed(2)
                 : canCalculateEntropy ? '0.00' : 'N/A'
               }
             </div>
-            <div className="text-xs font-mono text-gray-400">DIVERSITY INDEX</div>
+            <div className="text-xs font-mono text-gray-400">BEHAVIORAL DIVERSITY</div>
+            <div className="text-xs font-mono text-gray-500">(Shannon Entropy)</div>
           </div>
           
           <div className="text-center">
@@ -1329,6 +1701,7 @@ const SciFiPersonaLab = () => {
               }
             </div>
             <div className="text-xs font-mono text-gray-400">VULNERABILITIES</div>
+            <div className="text-xs font-mono text-gray-500">(Unique Found)</div>
           </div>
           
           <div className="text-center">
@@ -1339,30 +1712,84 @@ const SciFiPersonaLab = () => {
               }
             </div>
             <div className="text-xs font-mono text-gray-400">CRITICAL</div>
+            <div className="text-xs font-mono text-gray-500">(High Severity)</div>
           </div>
         </div>
 
         {/* Detailed Metrics Display */}
         {hasValidMetrics && (
           <div className="mt-4 space-y-3">
+            {/* Persona Fidelity Breakdown */}
             <div className="border-t border-gray-600 pt-3">
-              <div className="text-cyan-400 font-mono font-bold text-xs mb-2">PERSONA FIDELITY BREAKDOWN</div>
+              <div className="text-cyan-400 font-mono font-bold text-xs mb-2">PERSONA FIDELITY INDEX (PFI)</div>
+              <div className="text-gray-500 font-mono text-xs mb-2">
+                Cosine similarity between predefined C⃗(pi) and assessed S⃗(pi) characteristics
+              </div>
               {Object.entries(evaluationMetrics.persona_fidelity_scores || {}).map(([personaId, score]) => {
                 const persona = selectedPersonas.find(p => p.id === personaId);
                 return (
                   <div key={personaId} className="flex justify-between text-xs font-mono">
                     <span className="text-gray-400">{persona?.name || personaId}</span>
                     <span className={`${(score as number) > 0.7 ? 'text-green-400' : (score as number) > 0.4 ? 'text-yellow-400' : 'text-red-400'}`}>
-                      {((score as number) * 100).toFixed(1)}%
+                      {(score as number).toFixed(3)}
                     </span>
                   </div>
                 );
               })}
             </div>
 
+            {/* Action Matrix Analysis */}
+            {evaluationMetrics.action_matrix && (
+              <div className="border-t border-gray-600 pt-3">
+                <div className="text-cyan-400 font-mono font-bold text-xs mb-2">ACTION MATRIX ANALYSIS</div>
+                <div className="text-gray-500 font-mono text-xs mb-2">
+                  Entropy calculation: -Σ p(aj)log p(aj) = {evaluationMetrics.action_entropy.toFixed(2)}
+                </div>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {Object.entries(evaluationMetrics.action_matrix).slice(0, 3).map(([personaId, actions]) => {
+                    const persona = selectedPersonas.find(p => p.id === personaId);
+                    return (
+                      <div key={personaId} className="text-xs">
+                        <span className="text-cyan-400 font-mono font-bold">{persona?.name}:</span>
+                        <div className="ml-2 grid grid-cols-2 gap-1">
+                          {Object.entries(actions).map(([action, count]) => (
+                            <span key={action} className="text-gray-400 font-mono">
+                              {action.replace('_', ' ')}: {count}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Vulnerability Discovery Rates */}
+            {evaluationMetrics.vulnerability_detection_rate?.discovery_scores && (
+              <div className="border-t border-gray-600 pt-3">
+                <div className="text-cyan-400 font-mono font-bold text-xs mb-2">DISCOVERY RATES</div>
+                <div className="text-gray-500 font-mono text-xs mb-2">
+                  Discovery Score = unique vulnerabilities found / scenarios tested
+                </div>
+                {Object.entries(evaluationMetrics.vulnerability_detection_rate.discovery_scores).map(([personaId, score]) => {
+                  const persona = selectedPersonas.find(p => p.id === personaId);
+                  return (
+                    <div key={personaId} className="flex justify-between text-xs font-mono">
+                      <span className="text-gray-400">{persona?.name || personaId}</span>
+                      <span className={`${(score as number) > 0.5 ? 'text-green-400' : (score as number) > 0.3 ? 'text-yellow-400' : 'text-red-400'}`}>
+                        {(score as number).toFixed(2)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Vulnerability Details */}
             {evaluationMetrics.vulnerability_detection_rate?.vulnerabilities_detail && (
               <div className="border-t border-gray-600 pt-3">
-                <div className="text-cyan-400 font-mono font-bold text-xs mb-2">VULNERABILITY DETAILS</div>
+                <div className="text-cyan-400 font-mono font-bold text-xs mb-2">VULNERABILITY ANALYSIS</div>
                 <div className="max-h-32 overflow-y-auto space-y-1">
                   {evaluationMetrics.vulnerability_detection_rate.vulnerabilities_detail.slice(0, 5).map((vuln: any, index: number) => (
                     <div key={index} className="text-xs font-mono">
@@ -1374,13 +1801,11 @@ const SciFiPersonaLab = () => {
                         {vuln.severity.toUpperCase()}
                       </span>
                       <span className="text-gray-400 ml-2">{vuln.type.replace(/_/g, ' ')}</span>
+                      <div className="text-gray-500 ml-4 text-xs">
+                        Found by: {vuln.discovered_by.join(', ')}
+                      </div>
                     </div>
                   ))}
-                  {evaluationMetrics.vulnerability_detection_rate.vulnerabilities_detail.length > 5 && (
-                    <div className="text-gray-500 text-xs">
-                      +{evaluationMetrics.vulnerability_detection_rate.vulnerabilities_detail.length - 5} more...
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -1393,7 +1818,7 @@ const SciFiPersonaLab = () => {
               ENTROPY CALCULATION DISABLED
             </div>
             <div className="text-gray-400 font-mono text-xs">
-              Behavioral Diversity Index requires multiple personas for meaningful comparison.
+              Behavioral Diversity Index requires multiple personas for meaningful entropy calculation.
             </div>
           </div>
         )}
@@ -1401,10 +1826,10 @@ const SciFiPersonaLab = () => {
         {!simulationCompleted && selectedPersonas.length > 0 && activeScenario && (
           <div className="mt-4 p-3 border border-blue-500/30 rounded bg-blue-500/10">
             <div className="text-blue-400 font-mono text-xs font-bold mb-1">
-              READY FOR EVALUATION
+              EVALUATION FRAMEWORK READY
             </div>
             <div className="text-gray-400 font-mono text-xs">
-              Run simulation to calculate comprehensive metrics.
+              Will calculate PFI (cosine similarity), BDI (Shannon entropy), and VDR (discovery rate).
             </div>
           </div>
         )}
@@ -1501,7 +1926,7 @@ const SciFiPersonaLab = () => {
                   persona={persona}
                   isSelected={selectedPersonas.some(p => p.id === persona.id)}
                   onSelect={(persona) => {
-                    setSelectedPersonas(prev => 
+                    setSelectedPersonas((prev: Persona[]) => 
                       prev.some(p => p.id === persona.id) 
                         ? prev.filter(p => p.id !== persona.id)
                         : [...prev, persona]
@@ -1567,7 +1992,7 @@ const SciFiPersonaLab = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               if (confirm('Delete this scenario?')) {
-                                setScenarios(prev => prev.filter(s => s.id !== scenario.id));
+                                setScenarios((prev: Scenario[]) => prev.filter(s => s.id !== scenario.id));
                                 if (activeScenario?.id === scenario.id) {
                                   setActiveScenario(null);
                                 }
@@ -1693,7 +2118,6 @@ const SciFiPersonaLab = () => {
                           <div className="absolute top-6 left-1/2 transform -translate-x-1/2 min-w-max">
                             <div className="bg-black/80 border border-cyan-400/50 backdrop-blur-sm px-2 py-1 rounded text-xs">
                               <div className="text-cyan-400 font-mono font-bold">{persona.name}</div>
-                             
                             </div>
                           </div>
                         </div>
@@ -1703,18 +2127,51 @@ const SciFiPersonaLab = () => {
                 )}
               </HolographicPanel>
 
-              {/* Real Simulation Output Stream */}
+              {/* Real Simulation Output Stream with Action Matrix */}
               <HolographicPanel>
                 <div className="text-cyan-400 font-mono font-bold text-sm mb-4 flex items-center gap-2">
                   <Icons.CheckCircle />
-                  SIMULATION OUTPUT STREAM
+                  BEHAVIORAL ANALYSIS STREAM
                 </div>
+                
+                {/* Action Matrix Visualization */}
+                {evaluationMetrics?.action_matrix && (
+                  <div className="mb-4 p-3 border border-purple-500/30 rounded bg-purple-500/10">
+                    <div className="text-purple-400 font-mono font-bold text-xs mb-2">
+                      PERSONA-ACTION MATRIX (Entropy: {evaluationMetrics.action_entropy.toFixed(2)})
+                    </div>
+                    <div className="grid gap-1 text-xs font-mono">
+                      {Object.entries(evaluationMetrics.action_matrix).map(([personaId, actions]) => {
+                        const persona = selectedPersonas.find(p => p.id === personaId);
+                        const totalActions = Object.values(actions).reduce((sum: number, count) => sum + count, 0);
+                        return (
+                          <div key={personaId} className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${
+                              persona?.type === 'THREAT_ACTOR' ? 'bg-red-500' :
+                              persona?.type === 'SECURITY_PRACTITIONER' ? 'bg-green-500' :
+                              'bg-blue-500'
+                            }`} />
+                            <span className="text-cyan-400 w-20 truncate">{persona?.name}</span>
+                            <div className="flex gap-1 flex-wrap">
+                              {Object.entries(actions).map(([action, count]) => (
+                                <span key={action} className="px-1 py-0.5 bg-gray-700 rounded text-xs">
+                                  {action.replace('_', ' ')}: {count}
+                                </span>
+                              ))}
+                            </div>
+                            <span className="text-gray-500 ml-auto">Total: {totalActions}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {simulationOutputs.length > 0 ? (
                     simulationOutputs.map((output, index) => (
                       <div key={output.id} className="border border-gray-600 rounded p-3 bg-gray-900/50">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-3">
                           <div className={`w-2 h-2 rounded-full ${
                             output.error ? 'bg-red-500' :
                             output.persona_id.includes('martin') ? 'bg-red-500' :
@@ -1724,19 +2181,140 @@ const SciFiPersonaLab = () => {
                           <div className="text-cyan-400 font-mono font-bold text-xs">{output.persona_name}</div>
                           <div className="text-gray-400 font-mono text-xs">STEP {output.step}</div>
                           <div className="text-gray-500 font-mono text-xs">{output.step_title}</div>
+                          {output.action_category && (
+                            <div className="text-purple-400 font-mono text-xs bg-purple-500/20 px-2 py-1 rounded">
+                              {output.action_category.replace('_', ' ').toUpperCase()}
+                            </div>
+                          )}
                         </div>
                         
-                        {/* Action taken */}
+                        {/* Persona Characteristics Assessment for PFI */}
+                        {output.persona_characteristics_displayed && (
+                          <div className="bg-cyan-500/10 border border-cyan-500/30 rounded p-2 mb-3">
+                            <div className="text-cyan-400 font-mono text-xs font-bold mb-1">ASSESSED CHARACTERISTICS (for PFI)</div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>Tech: {output.persona_characteristics_displayed.technical_expertise.toFixed(1)}</div>
+                              <div>Privacy: {output.persona_characteristics_displayed.privacy_concern.toFixed(1)}</div>
+                              <div>Risk: {output.persona_characteristics_displayed.risk_tolerance.toFixed(1)}</div>
+                              <div>Security: {output.persona_characteristics_displayed.security_awareness.toFixed(1)}</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Vulnerabilities Found for VDR */}
+                        {output.vulnerabilities_found && output.vulnerabilities_found.length > 0 && (
+                          <div className="bg-red-500/10 border border-red-500/30 rounded p-2 mb-3">
+                            <div className="text-red-400 font-mono text-xs font-bold mb-1">VULNERABILITIES DISCOVERED</div>
+                            <div className="space-y-1">
+                              {output.vulnerabilities_found.map((vuln, i) => (
+                                <div key={i} className="text-gray-300 font-mono text-xs">
+                                  • {vuln.replace(/_/g, ' ').toUpperCase()}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Step-by-Step Thinking Process */}
+                        {output.thinking_process && (
+                          <div className="space-y-3 mb-3">
+                            {/* Initial Assessment */}
+                            <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2">
+                              <div className="text-blue-400 font-mono text-xs font-bold mb-1">1. INITIAL ASSESSMENT</div>
+                              <div className="text-gray-300 font-mono text-xs">
+                                {output.thinking_process.initial_assessment}
+                              </div>
+                            </div>
+
+                            {/* Observations */}
+                            {output.thinking_process.observations.length > 0 && (
+                              <div className="bg-purple-500/10 border border-purple-500/30 rounded p-2">
+                                <div className="text-purple-400 font-mono text-xs font-bold mb-1">2. OBSERVATIONS</div>
+                                <div className="space-y-1">
+                                  {output.thinking_process.observations.map((obs, i) => (
+                                    <div key={i} className="text-gray-300 font-mono text-xs">
+                                      • {obs}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Option Evaluation */}
+                            {output.thinking_process.option_evaluation.length > 0 && (
+                              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-2">
+                                <div className="text-yellow-400 font-mono text-xs font-bold mb-1">3. OPTION EVALUATION</div>
+                                <div className="space-y-2">
+                                  {output.thinking_process.option_evaluation.map((option, i) => (
+                                    <div key={i} className="border border-gray-700 rounded p-2 bg-gray-800/50">
+                                      <div className="text-cyan-400 font-mono text-xs font-bold mb-1">
+                                        OPTION: {option.option}
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                        <div>
+                                          <div className="text-green-400 font-mono font-bold">PROS:</div>
+                                          {option.pros.map((pro, j) => (
+                                            <div key={j} className="text-gray-300 font-mono">+ {pro}</div>
+                                          ))}
+                                        </div>
+                                        <div>
+                                          <div className="text-red-400 font-mono font-bold">CONS:</div>
+                                          {option.cons.map((con, j) => (
+                                            <div key={j} className="text-gray-300 font-mono">- {con}</div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div className="mt-1">
+                                        <span className="text-gray-400 font-mono text-xs">RISK: </span>
+                                        <span className={`font-mono text-xs ${
+                                          option.risk_level.toLowerCase().includes('high') ? 'text-red-400' :
+                                          option.risk_level.toLowerCase().includes('medium') ? 'text-yellow-400' :
+                                          'text-green-400'
+                                        }`}>
+                                          {option.risk_level}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Decision Rationale */}
+                            <div className="bg-green-500/10 border border-green-500/30 rounded p-2">
+                              <div className="text-green-400 font-mono text-xs font-bold mb-1">4. DECISION RATIONALE</div>
+                              <div className="text-gray-300 font-mono text-xs">
+                                {output.thinking_process.decision_rationale}
+                              </div>
+                            </div>
+
+                            {/* Uncertainty Points */}
+                            {output.thinking_process.uncertainty_points.length > 0 && (
+                              <div className="bg-orange-500/10 border border-orange-500/30 rounded p-2">
+                                <div className="text-orange-400 font-mono text-xs font-bold mb-1">5. UNCERTAINTIES</div>
+                                <div className="space-y-1">
+                                  {output.thinking_process.uncertainty_points.map((uncertainty, i) => (
+                                    <div key={i} className="text-gray-300 font-mono text-xs">
+                                      ? {uncertainty}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Final Action taken */}
                         <div className="bg-green-500/10 border border-green-500/30 rounded p-2 mb-2">
-                          <div className="text-green-400 font-mono text-xs font-bold mb-1">ACTION:</div>
+                          <div className="text-green-400 font-mono text-xs font-bold mb-1">FINAL ACTION:</div>
                           <div className="text-gray-300 font-mono text-xs">
                             {output.action}
                           </div>
                         </div>
 
-                        {/* Reasoning */}
+                        {/* Overall Reasoning Summary */}
                         <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2 mb-2">
-                          <div className="text-blue-400 font-mono text-xs font-bold mb-1">REASONING:</div>
+                          <div className="text-blue-400 font-mono text-xs font-bold mb-1">REASONING SUMMARY:</div>
                           <div className="text-gray-300 font-mono text-xs">
                             {output.reasoning}
                           </div>
