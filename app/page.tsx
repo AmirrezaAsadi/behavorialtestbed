@@ -1693,9 +1693,7 @@ const SciFiPersonaLab = () => {
                           <div className="absolute top-6 left-1/2 transform -translate-x-1/2 min-w-max">
                             <div className="bg-black/80 border border-cyan-400/50 backdrop-blur-sm px-2 py-1 rounded text-xs">
                               <div className="text-cyan-400 font-mono font-bold">{persona.name}</div>
-                              <div className="text-gray-400 font-mono text-xs">
-                                THREAT: {persona.skills.risk_tolerance}/5
-                              </div>
+                             
                             </div>
                           </div>
                         </div>
