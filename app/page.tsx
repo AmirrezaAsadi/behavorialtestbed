@@ -190,12 +190,12 @@ const HolographicPanel: React.FC<{
   </div>
 );
 
-// FIXED: PersonaEditor moved outside main component
+// FIXED: PersonaEditor moved outside main component with proper typing
 interface PersonaEditorProps {
   editingPersona: Persona | null;
   personas: Persona[];
-  setEditingPersona: (persona: Persona | null) => void;
-  setPersonas: (personas: Persona[] | ((prev: Persona[]) => Persona[])) => void;
+  setEditingPersona: React.Dispatch<React.SetStateAction<Persona | null>>;
+  setPersonas: React.Dispatch<React.SetStateAction<Persona[]>>;
 }
 
 const PersonaEditor: React.FC<PersonaEditorProps> = ({
@@ -208,25 +208,25 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
 
   // Use useCallback to prevent recreation of handlers
   const updatePersona = useCallback((field: string, value: any) => {
-    setEditingPersona((prev: Persona | null) => prev ? { ...prev, [field]: value } : null);
+    setEditingPersona(prev => prev ? { ...prev, [field]: value } : null);
   }, [setEditingPersona]);
 
   const updateDemographics = useCallback((field: string, value: any) => {
-    setEditingPersona((prev: Persona | null) => prev ? {
+    setEditingPersona(prev => prev ? {
       ...prev,
       demographics: { ...prev.demographics, [field]: value }
     } : null);
   }, [setEditingPersona]);
 
   const updateSkills = useCallback((field: string, value: number) => {
-    setEditingPersona((prev: Persona | null) => prev ? {
+    setEditingPersona(prev => prev ? {
       ...prev,
       skills: { ...prev.skills, [field]: value }
     } : null);
   }, [setEditingPersona]);
 
   const updateBehavioralPatterns = useCallback((index: number, value: string) => {
-    setEditingPersona((prev: Persona | null) => {
+    setEditingPersona(prev => {
       if (!prev) return null;
       const newPatterns = [...prev.behavioral_patterns];
       newPatterns[index] = value;
@@ -235,14 +235,14 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
   }, [setEditingPersona]);
 
   const addBehavioralPattern = useCallback(() => {
-    setEditingPersona((prev: Persona | null) => prev ? {
+    setEditingPersona(prev => prev ? {
       ...prev,
       behavioral_patterns: [...prev.behavioral_patterns, '']
     } : null);
   }, [setEditingPersona]);
 
   const removeBehavioralPattern = useCallback((index: number) => {
-    setEditingPersona((prev: Persona | null) => prev ? {
+    setEditingPersona(prev => prev ? {
       ...prev,
       behavioral_patterns: prev.behavioral_patterns.filter((_, i) => i !== index)
     } : null);
@@ -453,12 +453,12 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
   );
 };
 
-// FIXED: ScenarioBuilder moved outside main component
+// FIXED: ScenarioBuilder moved outside main component with proper typing
 interface ScenarioBuilderProps {
   newScenario: Omit<Scenario, 'id'>;
-  setNewScenario: (scenario: Omit<Scenario, 'id'> | ((prev: Omit<Scenario, 'id'>) => Omit<Scenario, 'id'>)) => void;
+  setNewScenario: React.Dispatch<React.SetStateAction<Omit<Scenario, 'id'>>>;
   scenarios: Scenario[];
-  setScenarios: (scenarios: Scenario[] | ((prev: Scenario[]) => Scenario[])) => void;
+  setScenarios: React.Dispatch<React.SetStateAction<Scenario[]>>;
 }
 
 const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
@@ -469,11 +469,11 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
 }) => {
   // Use useCallback to prevent function recreation
   const updateNewScenario = useCallback((field: string, value: any) => {
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({ ...prev, [field]: value }));
+    setNewScenario(prev => ({ ...prev, [field]: value }));
   }, [setNewScenario]);
 
   const updateSystemContext = useCallback((field: string, value: any) => {
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
+    setNewScenario(prev => ({
       ...prev,
       system_context: { ...prev.system_context, [field]: value }
     }));
@@ -490,14 +490,14 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
       security_elements: [''],
       decision_points: []
     };
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
+    setNewScenario(prev => ({
       ...prev,
       workflow_steps: [...prev.workflow_steps, newStep]
     }));
   }, [setNewScenario]);
 
   const updateWorkflowStep = useCallback((index: number, field: string, value: any) => {
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
+    setNewScenario(prev => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === index ? { ...step, [field]: value } : step
@@ -506,14 +506,14 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const removeWorkflowStep = useCallback((index: number) => {
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
+    setNewScenario(prev => ({
       ...prev,
       workflow_steps: prev.workflow_steps.filter((_, i) => i !== index)
     }));
   }, [setNewScenario]);
 
   const updateWorkflowStepActions = useCallback((stepIndex: number, actionIndex: number, value: string) => {
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
+    setNewScenario(prev => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -527,7 +527,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const addActionToStep = useCallback((stepIndex: number) => {
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
+    setNewScenario(prev => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -539,7 +539,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const removeActionFromStep = useCallback((stepIndex: number, actionIndex: number) => {
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
+    setNewScenario(prev => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -551,7 +551,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const updateSecurityElements = useCallback((stepIndex: number, elementIndex: number, value: string) => {
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
+    setNewScenario(prev => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -565,7 +565,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const addSecurityElement = useCallback((stepIndex: number) => {
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
+    setNewScenario(prev => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
@@ -577,7 +577,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   }, [setNewScenario]);
 
   const removeSecurityElement = useCallback((stepIndex: number, elementIndex: number) => {
-    setNewScenario((prev: Omit<Scenario, 'id'>) => ({
+    setNewScenario(prev => ({
       ...prev,
       workflow_steps: prev.workflow_steps.map((step, i) => 
         i === stepIndex ? {
