@@ -190,12 +190,12 @@ const HolographicPanel: React.FC<{
   </div>
 );
 
-// FIXED: PersonaEditor moved outside main component with proper typing
+// FIXED: PersonaEditor moved outside main component
 interface PersonaEditorProps {
   editingPersona: Persona | null;
   personas: Persona[];
-  setEditingPersona: React.Dispatch<React.SetStateAction<Persona | null>>;
-  setPersonas: React.Dispatch<React.SetStateAction<Persona[]>>;
+  setEditingPersona: (persona: Persona | null) => void;
+  setPersonas: (personas: Persona[] | ((prev: Persona[]) => Persona[])) => void;
 }
 
 const PersonaEditor: React.FC<PersonaEditorProps> = ({
@@ -453,12 +453,12 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
   );
 };
 
-// FIXED: ScenarioBuilder moved outside main component with proper typing
+// FIXED: ScenarioBuilder moved outside main component
 interface ScenarioBuilderProps {
   newScenario: Omit<Scenario, 'id'>;
-  setNewScenario: React.Dispatch<React.SetStateAction<Omit<Scenario, 'id'>>>;
+  setNewScenario: (scenario: Omit<Scenario, 'id'> | ((prev: Omit<Scenario, 'id'>) => Omit<Scenario, 'id'>)) => void;
   scenarios: Scenario[];
-  setScenarios: React.Dispatch<React.SetStateAction<Scenario[]>>;
+  setScenarios: (scenarios: Scenario[] | ((prev: Scenario[]) => Scenario[])) => void;
 }
 
 const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
@@ -1016,85 +1016,7 @@ const SciFiPersonaLab = () => {
     security_elements: []
   });
 
-  // API availability check and mock simulation functionality
-  const checkApiAvailability = async () => {
-    try {
-      const response = await fetch('/api/health', { method: 'GET' });
-      return response.ok;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  // Mock simulation data generator
-  const generateMockSimulation = (personas: Persona[], scenario: Scenario) => {
-    const mockOutputs: SimulationOutput[] = [];
-    const mockMetrics = {
-      persona_fidelity_scores: {} as Record<string, number>,
-      behavioral_diversity_index: 0,
-      vulnerability_detection_rate: {
-        unique_vulnerabilities: 0,
-        critical_count: 0,
-        vulnerabilities_detail: [] as any[]
-      }
-    };
-
-    // Generate mock outputs for each persona and step
-    personas.forEach((persona, personaIndex) => {
-      scenario.workflow_steps.forEach((step, stepIndex) => {
-        const mockOutput: SimulationOutput = {
-          id: `mock-${persona.id}-${step.id}-${Date.now()}`,
-          persona_id: persona.id,
-          persona_name: persona.name,
-          step: stepIndex + 1,
-          action: step.available_actions[Math.floor(Math.random() * step.available_actions.length)] || 'Default action',
-          reasoning: `Based on ${persona.name}'s profile (${persona.type}), they would likely ${
-            persona.type === 'THREAT_ACTOR' ? 'look for vulnerabilities' :
-            persona.type === 'SECURITY_PRACTITIONER' ? 'verify security measures' :
-            'prioritize convenience'
-          } in this situation.`,
-          confidence: Math.floor(Math.random() * 2) + 3, // 3-5 range
-          timestamp: new Date().toISOString(),
-          step_title: step.title,
-          security_assessment: step.security_elements.length > 0 ? 
-            `Security elements detected: ${step.security_elements.join(', ')}` : undefined
-        };
-        mockOutputs.push(mockOutput);
-      });
-
-      // Generate mock persona fidelity scores
-      mockMetrics.persona_fidelity_scores[persona.id] = 0.7 + Math.random() * 0.3; // 0.7-1.0 range
-    });
-
-    // Generate mock diversity index
-    if (personas.length > 1) {
-      mockMetrics.behavioral_diversity_index = 0.6 + Math.random() * 0.4; // 0.6-1.0 range
-    }
-
-    // Generate mock vulnerabilities
-    const vulnerabilityTypes = ['social_engineering', 'input_validation', 'authentication_bypass', 'privilege_escalation'];
-    const severities = ['low', 'medium', 'high', 'critical'];
-    const numVulns = Math.floor(Math.random() * 5) + 1;
-    
-    for (let i = 0; i < numVulns; i++) {
-      const severity = severities[Math.floor(Math.random() * severities.length)];
-      mockMetrics.vulnerability_detection_rate.vulnerabilities_detail.push({
-        type: vulnerabilityTypes[Math.floor(Math.random() * vulnerabilityTypes.length)],
-        severity: severity,
-        description: `Mock ${severity} vulnerability detected`
-      });
-      
-      if (severity === 'critical') {
-        mockMetrics.vulnerability_detection_rate.critical_count++;
-      }
-    }
-    
-    mockMetrics.vulnerability_detection_rate.unique_vulnerabilities = numVulns;
-
-    return { outputs: mockOutputs, evaluation_framework: mockMetrics };
-  };
-
-  // Enhanced simulation functions with API checks and fallback
+  // Enhanced simulation functions with proper state management
   const runSimulation = async () => {
     if (selectedPersonas.length === 0) {
       alert('Please select personas first');
@@ -1113,79 +1035,37 @@ const SciFiPersonaLab = () => {
     setEvaluationMetrics(null);
 
     try {
-      // Check if API is available
-      const apiAvailable = await checkApiAvailability();
+      const response = await fetch('/api/simulation/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personas: selectedPersonas,
+          scenario: activeScenario, // Always use user-defined scenario
+          timeline_scope: timelineScope,
+          speed: speed
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
       
-      if (!apiAvailable) {
-        console.log('API not available, running mock simulation...');
-        
-        // Show user that we're running in demo mode
-        const useMock = confirm(
-          'Backend API is not available. Would you like to run a demo simulation with mock data?\n\n' +
-          'This will demonstrate the interface functionality without requiring a backend server.'
-        );
-        
-        if (!useMock) {
-          setIsRunning(false);
-          return;
-        }
-
-        // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const mockResult = generateMockSimulation(selectedPersonas, activeScenario);
-        
-        setSimulationOutputs(mockResult.outputs);
-        setEvaluationMetrics(mockResult.evaluation_framework);
+      if (result.success) {
+        setSimulationOutputs(result.outputs);
+        setEvaluationMetrics(result.evaluation_framework);
         setSimulationCompleted(true);
-        console.log('Mock simulation completed successfully:', mockResult);
+        console.log('Simulation completed successfully:', result);
       } else {
-        // Try real API call
-        const response = await fetch('/api/simulation/run', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            personas: selectedPersonas,
-            scenario: activeScenario,
-            timeline_scope: timelineScope,
-            speed: speed
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`API Error: ${response.status} - ${errorText}`);
-        }
-
-        const result = await response.json();
-        
-        if (result.success) {
-          setSimulationOutputs(result.outputs);
-          setEvaluationMetrics(result.evaluation_framework);
-          setSimulationCompleted(true);
-          console.log('Simulation completed successfully:', result);
-        } else {
-          throw new Error(result.error || 'Simulation failed');
-        }
+        throw new Error(result.error || 'Simulation failed');
       }
     } catch (error) {
       console.error('Simulation error:', error);
-      
-      // Offer fallback to mock simulation
-      const useMock = confirm(
-        `Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}\n\n` +
-        'Would you like to run a demo simulation with mock data instead?'
-      );
-      
-      if (useMock) {
-        const mockResult = generateMockSimulation(selectedPersonas, activeScenario);
-        setSimulationOutputs(mockResult.outputs);
-        setEvaluationMetrics(mockResult.evaluation_framework);
-        setSimulationCompleted(true);
-        console.log('Fallback mock simulation completed:', mockResult);
-      }
+      alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your scenario configuration and API settings.`);
     } finally {
       setIsRunning(false);
     }
