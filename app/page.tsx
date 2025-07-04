@@ -206,47 +206,56 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
 }) => {
   if (!editingPersona) return null;
 
- // Use useCallback to prevent recreation of handlers
+// Use useCallback to prevent recreation of handlers
   const updatePersona = useCallback((field: string, value: any) => {
-    setEditingPersona((prev: Persona | null) => prev ? { ...prev, [field]: value } : null);
-  }, [setEditingPersona]);
+    if (editingPersona) {
+      setEditingPersona({ ...editingPersona, [field]: value });
+    }
+  }, [editingPersona, setEditingPersona]);
 
   const updateDemographics = useCallback((field: string, value: any) => {
-    setEditingPersona((prev: Persona | null) => prev ? {
-      ...prev,
-      demographics: { ...prev.demographics, [field]: value }
-    } : null);
-  }, [setEditingPersona]);
+    if (editingPersona) {
+      setEditingPersona({
+        ...editingPersona,
+        demographics: { ...editingPersona.demographics, [field]: value }
+      });
+    }
+  }, [editingPersona, setEditingPersona]);
 
   const updateSkills = useCallback((field: string, value: number) => {
-    setEditingPersona((prev: Persona | null) => prev ? {
-      ...prev,
-      skills: { ...prev.skills, [field]: value }
-    } : null);
-  }, [setEditingPersona]);
+    if (editingPersona) {
+      setEditingPersona({
+        ...editingPersona,
+        skills: { ...editingPersona.skills, [field]: value }
+      });
+    }
+  }, [editingPersona, setEditingPersona]);
 
   const updateBehavioralPatterns = useCallback((index: number, value: string) => {
-    setEditingPersona((prev: Persona | null) => {
-      if (!prev) return null;
-      const newPatterns = [...prev.behavioral_patterns];
+    if (editingPersona) {
+      const newPatterns = [...editingPersona.behavioral_patterns];
       newPatterns[index] = value;
-      return { ...prev, behavioral_patterns: newPatterns };
-    });
-  }, [setEditingPersona]);
+      setEditingPersona({ ...editingPersona, behavioral_patterns: newPatterns });
+    }
+  }, [editingPersona, setEditingPersona]);
 
   const addBehavioralPattern = useCallback(() => {
-    setEditingPersona((prev: Persona | null) => prev ? {
-      ...prev,
-      behavioral_patterns: [...prev.behavioral_patterns, '']
-    } : null);
-  }, [setEditingPersona]);
+    if (editingPersona) {
+      setEditingPersona({
+        ...editingPersona,
+        behavioral_patterns: [...editingPersona.behavioral_patterns, '']
+      });
+    }
+  }, [editingPersona, setEditingPersona]);
 
   const removeBehavioralPattern = useCallback((index: number) => {
-    setEditingPersona((prev: Persona | null) => prev ? {
-      ...prev,
-      behavioral_patterns: prev.behavioral_patterns.filter((_, i) => i !== index)
-    } : null);
-  }, [setEditingPersona]);
+    if (editingPersona) {
+      setEditingPersona({
+        ...editingPersona,
+        behavioral_patterns: editingPersona.behavioral_patterns.filter((_, i) => i !== index)
+      });
+    }
+  }, [editingPersona, setEditingPersona]);
 
   const savePersona = useCallback(() => {
     if (!editingPersona) return;
