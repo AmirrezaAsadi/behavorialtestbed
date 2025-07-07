@@ -518,11 +518,11 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
   }, [editingPersona, personas, setPersonas, setEditingPersona]);
 
   return (
-    <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <HolographicPanel className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <div className="text-cyan-700 font-mono font-bold text-lg">PERSONA EDITOR</div>
+            <div className="text-cyan-400 font-mono font-bold text-lg">PERSONA EDITOR</div>
             <div className="flex gap-2">
               <button 
                 onClick={savePersona}
@@ -533,7 +533,7 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
               </button>
               <button 
                 onClick={() => setEditingPersona(null)}
-                className="px-4 py-2 bg-red-100 border border-red-300 text-red-700 rounded font-mono text-sm hover:bg-red-200"
+                className="px-4 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded font-mono text-sm hover:bg-red-500/30"
               >
                 <Icons.X className="inline mr-2" />
                 CANCEL
@@ -547,21 +547,21 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
               <div className="text-yellow-400 font-mono font-bold">BASIC INFO</div>
               
               <div>
-                <label className="block text-gray-700 font-mono text-xs mb-1">NAME</label>
+                <label className="block text-gray-400 font-mono text-xs mb-1">NAME</label>
                 <input 
                   type="text"
                   value={editingPersona.name}
                   onChange={(e) => updatePersona('name', e.target.value)}
-                  className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm"
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-mono text-xs mb-1">TYPE</label>
+                <label className="block text-gray-400 font-mono text-xs mb-1">TYPE</label>
                 <select 
                   value={editingPersona.type}
                   onChange={(e) => updatePersona('type', e.target.value)}
-                  className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm"
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
                 >
                   <option value="THREAT_ACTOR">THREAT ACTOR</option>
                   <option value="SECURITY_PRACTITIONER">SECURITY PRACTITIONER</option>
@@ -570,12 +570,12 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
               </div>
 
               <div>
-                <label className="block text-gray-700 font-mono text-xs mb-1">SUBTYPE</label>
+                <label className="block text-gray-400 font-mono text-xs mb-1">SUBTYPE</label>
                 <input 
                   type="text"
                   value={editingPersona.subtype}
                   onChange={(e) => updatePersona('subtype', e.target.value)}
-                  className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm"
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
                 />
               </div>
             </div>
@@ -586,52 +586,52 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-gray-700 font-mono text-xs mb-1">AGE</label>
+                  <label className="block text-gray-400 font-mono text-xs mb-1">AGE</label>
                   <input 
                     type="number"
                     value={editingPersona.demographics.age}
                     onChange={(e) => updateDemographics('age', parseInt(e.target.value))}
-                    className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm"
+                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-gray-700 font-mono text-xs mb-1">NATIONALITY</label>
+                  <label className="block text-gray-400 font-mono text-xs mb-1">NATIONALITY</label>
                   <input 
                     type="text"
                     value={editingPersona.demographics.nationality}
                     onChange={(e) => updateDemographics('nationality', e.target.value)}
-                    className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm"
+                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-gray-700 font-mono text-xs mb-1">LOCATION</label>
+                <label className="block text-gray-400 font-mono text-xs mb-1">LOCATION</label>
                 <input 
                   type="text"
                   value={editingPersona.demographics.location}
                   onChange={(e) => updateDemographics('location', e.target.value)}
-                  className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm"
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-mono text-xs mb-1">BACKGROUND</label>
+                <label className="block text-gray-400 font-mono text-xs mb-1">BACKGROUND</label>
                 <textarea 
                   value={editingPersona.demographics.background}
                   onChange={(e) => updateDemographics('background', e.target.value)}
-                  className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm h-20"
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-mono text-xs mb-1">LANGUAGES (comma separated)</label>
+                <label className="block text-gray-400 font-mono text-xs mb-1">LANGUAGES (comma separated)</label>
                 <input 
                   type="text"
                   value={editingPersona.demographics.languages.join(', ')}
                   onChange={(e) => updateDemographics('languages', e.target.value.split(', '))}
-                  className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm"
+                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
                 />
               </div>
             </div>
@@ -643,7 +643,6 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
               {Object.entries(editingPersona.skills).map(([skill, level]) => (
                 <div key={skill}>
                   <label className="block text-gray-400 font-mono text-xs mb-2">
-                  <label className="block text-gray-700 font-mono text-xs mb-2">
                     {skill.replace('_', ' ').toUpperCase()}
                   </label>
                   <div className="flex items-center gap-2">
@@ -656,7 +655,6 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
                       className="flex-1"
                     />
                     <span className="text-cyan-400 font-mono text-sm w-8">{level}</span>
-                    <span className="text-cyan-700 font-mono text-sm w-8">{level}</span>
                   </div>
                 </div>
               ))}
@@ -673,13 +671,10 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
                     value={pattern}
                     onChange={(e) => updateBehavioralPatterns(index, e.target.value)}
                     className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                    className="flex-1 bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm"
                   />
                   <button 
                     onClick={() => removeBehavioralPattern(index)}
                     className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
-                    className="px-2 py-2 bg-red-100 border border-red-300 text-red-700 rounded"
-                className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm h-20"
                   >
                     <Icons.X />
                   </button>
@@ -1870,7 +1865,7 @@ const SciFiPersonaLab = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-mono font-bold text-cyan-400 mb-2 tracking-wider">
-            Persona Crash Lab
+            Persona Crash LAB
           </h1>
           <div className="text-sm font-mono text-gray-400">
             LLM-DRIVEN BEHAVIORAL TESTBED • SECURITY SIMULATION MATRIX
