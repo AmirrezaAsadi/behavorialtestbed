@@ -1228,6 +1228,7 @@ const SciFiPersonaLab = () => {
   const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
   const [simulationOutputs, setSimulationOutputs] = useState<SimulationOutput[]>([]);
   const [evaluationMetrics, setEvaluationMetrics] = useState<EvaluationMetrics | null>(null);
+  const [useRemoteAPI, setUseRemoteAPI] = useState<boolean>(false);
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
   const matrixRef = useRef<HTMLCanvasElement>(null);
@@ -1397,29 +1398,103 @@ const SciFiPersonaLab = () => {
     setEvaluationMetrics(null);
 
     try {
-      // Simulate realistic persona behaviors for each step
-      const mockOutputs: SimulationOutput[] = [];
-      
-      for (let stepIndex = 0; stepIndex < activeScenario.workflow_steps.length; stepIndex++) {
-        const step = activeScenario.workflow_steps[stepIndex];
+      if (useRemoteAPI) {
+        // Call the remote API
+        const response = await fetch('/api/simulation/run', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            personas: selectedPersonas,
+            scenario: activeScenario,
+            timeline_scope: { max_steps: activeScenario.workflow_steps.length },
+            speed: speed
+          }),
+        });
         
-        for (const persona of selectedPersonas) {
-          // Generate realistic behavior based on persona characteristics
-          const behavior = generatePersonaBehavior(persona, step, stepIndex + 1);
-          mockOutputs.push(behavior);
-          
-          // Add delay for realistic simulation
-          await new Promise(resolve => setTimeout(resolve, 1000 / speed));
-          setSimulationOutputs([...mockOutputs]);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
         }
+        
+        const data = await response.json();
+        
+        // Transform API outputs to ensure thinking_process is properly formatted
+        const transformedOutputs = data.outputs.map((output: any) => {
+          // Check if thinking property exists and needs transformation
+          let processedThinking = output.thinking_process;
+          
+          // If no thinking_process but has thinking, convert it
+          if (!processedThinking && output.thinking) {
+            try {
+              // Try to parse if it's a JSON string
+              if (typeof output.thinking === 'string' && (
+                output.thinking.startsWith('{') || 
+                output.thinking.includes('initial_assessment')
+              )) {
+                try {
+                  processedThinking = JSON.parse(output.thinking);
+                } catch (e) {
+                  // Not valid JSON
+                }
+              }
+              
+              // If not parsed or not in correct format, create a basic structure
+              if (!processedThinking || !processedThinking.initial_assessment) {
+                processedThinking = {
+                  initial_assessment: typeof output.thinking === 'string' 
+                    ? output.thinking.substring(0, 200) 
+                    : 'Initial assessment unavailable',
+                  observations: ['API response does not include structured observations'],
+                  option_evaluation: [{ 
+                    option: output.action || 'Selected action', 
+                    pros: ['From API response'], 
+                    cons: ['Unstructured thinking process'], 
+                    risk_level: 'UNKNOWN' 
+                  }],
+                  decision_rationale: output.reasoning || 'No detailed rationale provided',
+                  uncertainty_points: ['Full thinking process available in raw format']
+                };
+              }
+            } catch (error) {
+              console.error('Error processing thinking output:', error);
+            }
+          }
+          
+          return {
+            ...output,
+            thinking_process: processedThinking
+          };
+        });
+        
+        setSimulationOutputs(transformedOutputs);
+        setEvaluationMetrics(data.metrics);
+        setSimulationCompleted(true);
+      } else {
+        // Simulate realistic persona behaviors for each step
+        const mockOutputs: SimulationOutput[] = [];
+        
+        for (let stepIndex = 0; stepIndex < activeScenario.workflow_steps.length; stepIndex++) {
+          const step = activeScenario.workflow_steps[stepIndex];
+          
+          for (const persona of selectedPersonas) {
+            // Generate realistic behavior based on persona characteristics
+            const behavior = generatePersonaBehavior(persona, step, stepIndex + 1);
+            mockOutputs.push(behavior);
+            
+            // Add delay for realistic simulation
+            await new Promise(resolve => setTimeout(resolve, 1000 / speed));
+            setSimulationOutputs([...mockOutputs]);
+          }
+        }
+        
+        // Calculate comprehensive evaluation metrics
+        const metrics = calculateComprehensiveMetrics(mockOutputs, selectedPersonas);
+        setEvaluationMetrics(metrics);
+        setSimulationCompleted(true);
+        
+        console.log('Simulation completed with metrics:', metrics);
       }
-      
-      // Calculate comprehensive evaluation metrics
-      const metrics = calculateComprehensiveMetrics(mockOutputs, selectedPersonas);
-      setEvaluationMetrics(metrics);
-      setSimulationCompleted(true);
-      
-      console.log('Simulation completed with metrics:', metrics);
     } catch (error) {
       console.error('Simulation error:', error);
       alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -1686,6 +1761,22 @@ const SciFiPersonaLab = () => {
               ✓ SIMULATION COMPLETED - Results Available
             </div>
           )}
+          
+          {/* API Mode Toggle */}
+          <div className="flex items-center gap-2 mt-2">
+            <div className="text-gray-400 font-mono text-xs">LOCAL MODE</div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                value="" 
+                className="sr-only peer"
+                checked={useRemoteAPI}
+                onChange={() => setUseRemoteAPI(!useRemoteAPI)}
+              />
+              <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+            </label>
+            <div className={`font-mono text-xs ${useRemoteAPI ? 'text-cyan-400' : 'text-gray-400'}`}>API MODE {useRemoteAPI ? "(THINK ALOUD)" : ""}</div>
+          </div>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
