@@ -134,7 +134,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
     operators: []
   };
 
-  const [flow, setFlow] = useState<GOMSFlow>(initialFlow || defaultFlow);
+  const [flow, setFlow] = useState<GOMSFlow>(initialFlow !== null ? initialFlow : defaultFlow);
   const [currentOperatorId, setCurrentOperatorId] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
   
