@@ -424,11 +424,11 @@ const HolographicPanel: React.FC<{
   glow?: boolean;
 }> = ({ children, className = "", glow = false }) => (
   <div className={`
-    bg-black/20 backdrop-blur-md border border-cyan-500/30 rounded-lg relative
-    ${glow ? 'shadow-[0_0_20px_rgba(34,211,238,0.3)]' : ''}
+    bg-white/90 backdrop-blur-md border border-cyan-200/60 rounded-lg relative
+    ${glow ? 'shadow-[0_0_15px_rgba(34,211,238,0.15)]' : ''}
     ${className}
   `}>
-    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 rounded-lg" />
+    <div className="absolute inset-0 bg-gradient-to-br from-cyan-100/20 to-purple-100/20 rounded-lg" />
     <div className="relative z-10 p-4">
       {children}
     </div>
@@ -518,11 +518,11 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
   }, [editingPersona, personas, setPersonas, setEditingPersona]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <HolographicPanel className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <div className="text-cyan-400 font-mono font-bold text-lg">PERSONA EDITOR</div>
+            <div className="text-cyan-700 font-mono font-bold text-lg">PERSONA EDITOR</div>
             <div className="flex gap-2">
               <button 
                 onClick={savePersona}
@@ -544,24 +544,24 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Basic Info */}
             <div className="space-y-4">
-              <div className="text-yellow-400 font-mono font-bold">BASIC INFO</div>
+              <div className="text-yellow-700 font-mono font-bold">BASIC INFO</div>
               
               <div>
-                <label className="block text-gray-400 font-mono text-xs mb-1">NAME</label>
+                <label className="block text-gray-700 font-mono text-xs mb-1">NAME</label>
                 <input 
                   type="text"
                   value={editingPersona.name}
                   onChange={(e) => updatePersona('name', e.target.value)}
-                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                  className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 font-mono text-xs mb-1">TYPE</label>
+                <label className="block text-gray-700 font-mono text-xs mb-1">TYPE</label>
                 <select 
                   value={editingPersona.type}
                   onChange={(e) => updatePersona('type', e.target.value)}
-                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                  className="w-full bg-white border border-cyan-200/60 rounded px-3 py-2 text-cyan-700 font-mono text-sm"
                 >
                   <option value="THREAT_ACTOR">THREAT ACTOR</option>
                   <option value="SECURITY_PRACTITIONER">SECURITY PRACTITIONER</option>
@@ -1155,10 +1155,10 @@ const SciFiPersonaLab = () => {
     function draw() {
       if (!ctx) return;
       
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
       
-      ctx.fillStyle = '#00ff41';
+      ctx.fillStyle = '#39FF14'; // Bright neon green
       ctx.font = fontSize + 'px monospace';
 
       for (let i = 0; i < drops.length; i++) {
@@ -1539,13 +1539,13 @@ const SciFiPersonaLab = () => {
     
     return (
       <HolographicPanel glow className="space-y-4">
-        <div className="text-cyan-400 font-mono font-bold text-sm flex items-center gap-2">
+        <div className="text-cyan-700 font-mono font-bold text-sm flex items-center gap-2">
           <Icons.Zap />
           SIMULATION CONTROL MATRIX
         </div>
         
         <div className="space-y-3">
-          <div className="text-gray-400 font-mono text-xs">
+          <div className="text-gray-600 font-mono text-xs">
             SELECTED PERSONAS: {selectedPersonas.length}
           </div>
           
@@ -1637,15 +1637,15 @@ const SciFiPersonaLab = () => {
         </div>
 
         <div className="space-y-2">
-          <div className="text-gray-400 font-mono text-xs">SPEED MULTIPLIER</div>
+          <div className="text-gray-600 font-mono text-xs">SPEED MULTIPLIER</div>
           <div className="flex items-center gap-2">
-            <div className="flex-1 h-1 bg-gray-700 rounded overflow-hidden">
+            <div className="flex-1 h-1 bg-gray-200 rounded overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-green-500 to-red-500 transition-all duration-300"
+                className="h-full bg-gradient-to-r from-green-400 to-red-400 transition-all duration-300"
                 style={{ width: `${(speed / 10) * 100}%` }}
               />
             </div>
-            <span className="text-cyan-400 font-mono text-xs w-8">{speed}X</span>
+            <span className="text-cyan-700 font-mono text-xs w-8">{speed}X</span>
           </div>
           <input 
             type="range" 
@@ -1654,7 +1654,7 @@ const SciFiPersonaLab = () => {
             value={speed}
             onChange={(e) => setSpeed(Number(e.target.value))}
             disabled={isRunning}
-            className="w-full h-1 bg-gray-700 rounded appearance-none slider"
+            className="w-full h-1 bg-gray-200 rounded appearance-none slider"
           />
         </div>
       </HolographicPanel>
@@ -1667,8 +1667,7 @@ const SciFiPersonaLab = () => {
     const hasValidMetrics = evaluationMetrics && simulationCompleted;
     
     return (
-      <HolographicPanel>
-        <div className="text-cyan-400 font-mono font-bold text-sm mb-4">EVALUATION FRAMEWORK</div>
+      <HolographicPanel>          <div className="text-cyan-700 font-mono font-bold text-sm mb-4">EVALUATION FRAMEWORK</div>
         
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
@@ -1844,11 +1843,11 @@ const SciFiPersonaLab = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden relative">
+    <div className="min-h-screen bg-gray-50 text-gray-800 overflow-hidden relative">
       {/* Animated Matrix Background */}
       <canvas 
         ref={matrixRef}
-        className="fixed inset-0 opacity-10 pointer-events-none"
+        className="fixed inset-0 opacity-5 pointer-events-none"
       />
       
       {/* Persona Editor Modal */}
@@ -1864,10 +1863,10 @@ const SciFiPersonaLab = () => {
         
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-mono font-bold text-cyan-400 mb-2 tracking-wider">
+          <h1 className="text-4xl font-mono font-bold text-cyan-700 mb-2 tracking-wider">
             Persona Crash LAB
           </h1>
-          <div className="text-sm font-mono text-gray-400">
+          <div className="text-sm font-mono text-gray-600">
             LLM-DRIVEN BEHAVIORAL TESTBED • SECURITY SIMULATION MATRIX
           </div>
         </div>
@@ -1883,8 +1882,8 @@ const SciFiPersonaLab = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-6 py-3 font-mono text-sm transition-all ${
                     activeTab === tab.id 
-                      ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500' 
-                      : 'text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10'
+                      ? 'bg-cyan-100 text-cyan-700 border-cyan-300' 
+                      : 'text-gray-600 hover:text-cyan-700 hover:bg-cyan-50'
                   }`}
                 >
                   <Icon />
@@ -1899,7 +1898,7 @@ const SciFiPersonaLab = () => {
         {activeTab === 'personas' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <div className="text-cyan-400 font-mono font-bold text-lg">PERSONA LIBRARY</div>
+              <div className="text-cyan-700 font-mono font-bold text-lg">PERSONA LIBRARY</div>
               <button 
                 onClick={() => setEditingPersona({
                   id: Date.now().toString(),
@@ -1943,10 +1942,9 @@ const SciFiPersonaLab = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <div className="text-cyan-400 font-mono font-bold text-lg">SCENARIO MANAGEMENT</div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setActiveScenario(null)}
-                  className="px-4 py-2 bg-blue-500/20 border border-blue-500 text-blue-400 rounded font-mono text-sm"
+              <div className="flex gap-2">              <button 
+                onClick={() => setActiveScenario(null)}
+                className="px-4 py-2 bg-blue-100 border border-blue-300 text-blue-700 rounded font-mono text-sm"
                 >
                   CREATE NEW
                 </button>
