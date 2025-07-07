@@ -1228,7 +1228,6 @@ const SciFiPersonaLab = () => {
   const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
   const [simulationOutputs, setSimulationOutputs] = useState<SimulationOutput[]>([]);
   const [evaluationMetrics, setEvaluationMetrics] = useState<EvaluationMetrics | null>(null);
-  const [useRemoteAPI, setUseRemoteAPI] = useState<boolean>(false);
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
   const matrixRef = useRef<HTMLCanvasElement>(null);
@@ -1398,103 +1397,77 @@ const SciFiPersonaLab = () => {
     setEvaluationMetrics(null);
 
     try {
-      if (useRemoteAPI) {
-        // Call the remote API
-        const response = await fetch('/api/simulation/run', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            personas: selectedPersonas,
-            scenario: activeScenario,
-            timeline_scope: { max_steps: activeScenario.workflow_steps.length },
-            speed: speed
-          }),
-        });
-        
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Transform API outputs to ensure thinking_process is properly formatted
-        const transformedOutputs = data.outputs.map((output: any) => {
-          // Check if thinking property exists and needs transformation
-          let processedThinking = output.thinking_process;
-          
-          // If no thinking_process but has thinking, convert it
-          if (!processedThinking && output.thinking) {
-            try {
-              // Try to parse if it's a JSON string
-              if (typeof output.thinking === 'string' && (
-                output.thinking.startsWith('{') || 
-                output.thinking.includes('initial_assessment')
-              )) {
-                try {
-                  processedThinking = JSON.parse(output.thinking);
-                } catch (e) {
-                  // Not valid JSON
-                }
-              }
-              
-              // If not parsed or not in correct format, create a basic structure
-              if (!processedThinking || !processedThinking.initial_assessment) {
-                processedThinking = {
-                  initial_assessment: typeof output.thinking === 'string' 
-                    ? output.thinking.substring(0, 200) 
-                    : 'Initial assessment unavailable',
-                  observations: ['API response does not include structured observations'],
-                  option_evaluation: [{ 
-                    option: output.action || 'Selected action', 
-                    pros: ['From API response'], 
-                    cons: ['Unstructured thinking process'], 
-                    risk_level: 'UNKNOWN' 
-                  }],
-                  decision_rationale: output.reasoning || 'No detailed rationale provided',
-                  uncertainty_points: ['Full thinking process available in raw format']
-                };
-              }
-            } catch (error) {
-              console.error('Error processing thinking output:', error);
-            }
-          }
-          
-          return {
-            ...output,
-            thinking_process: processedThinking
-          };
-        });
-        
-        setSimulationOutputs(transformedOutputs);
-        setEvaluationMetrics(data.metrics);
-        setSimulationCompleted(true);
-      } else {
-        // Simulate realistic persona behaviors for each step
-        const mockOutputs: SimulationOutput[] = [];
-        
-        for (let stepIndex = 0; stepIndex < activeScenario.workflow_steps.length; stepIndex++) {
-          const step = activeScenario.workflow_steps[stepIndex];
-          
-          for (const persona of selectedPersonas) {
-            // Generate realistic behavior based on persona characteristics
-            const behavior = generatePersonaBehavior(persona, step, stepIndex + 1);
-            mockOutputs.push(behavior);
-            
-            // Add delay for realistic simulation
-            await new Promise(resolve => setTimeout(resolve, 1000 / speed));
-            setSimulationOutputs([...mockOutputs]);
-          }
-        }
-        
-        // Calculate comprehensive evaluation metrics
-        const metrics = calculateComprehensiveMetrics(mockOutputs, selectedPersonas);
-        setEvaluationMetrics(metrics);
-        setSimulationCompleted(true);
-        
-        console.log('Simulation completed with metrics:', metrics);
+      // Call the API for all simulation data
+      const response = await fetch('/api/simulation/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personas: selectedPersonas,
+          scenario: activeScenario,
+          timeline_scope: { max_steps: activeScenario.workflow_steps.length },
+          speed: speed
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
+      
+      const data = await response.json();
+      
+      // Transform API outputs to ensure thinking_process is properly formatted
+      const transformedOutputs = data.outputs.map((output: any) => {
+        // Check if thinking property exists and needs transformation
+        let processedThinking = output.thinking_process;
+        
+        // If no thinking_process but has thinking, convert it
+        if (!processedThinking && output.thinking) {
+          try {
+            // Try to parse if it's a JSON string
+            if (typeof output.thinking === 'string' && (
+              output.thinking.startsWith('{') || 
+              output.thinking.includes('initial_assessment')
+            )) {
+              try {
+                processedThinking = JSON.parse(output.thinking);
+              } catch (e) {
+                // Not valid JSON
+              }
+            }
+            
+            // If not parsed or not in correct format, create a basic structure
+            if (!processedThinking || !processedThinking.initial_assessment) {
+              processedThinking = {
+                initial_assessment: typeof output.thinking === 'string' 
+                  ? output.thinking.substring(0, 200) 
+                  : 'Initial assessment unavailable',
+                observations: ['API response does not include structured observations'],
+                option_evaluation: [{ 
+                  option: output.action || 'Selected action', 
+                  pros: ['From API response'], 
+                  cons: ['Unstructured thinking process'], 
+                  risk_level: 'UNKNOWN' 
+                }],
+                decision_rationale: output.reasoning || 'No detailed rationale provided',
+                uncertainty_points: ['Full thinking process available in raw format']
+              };
+            }
+          } catch (error) {
+            console.error('Error processing thinking output:', error);
+          }
+        }
+        
+        return {
+          ...output,
+          thinking_process: processedThinking
+        };
+      });
+      
+      setSimulationOutputs(transformedOutputs);
+      setEvaluationMetrics(data.metrics);
+      setSimulationCompleted(true);
     } catch (error) {
       console.error('Simulation error:', error);
       alert(`Simulation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -1503,131 +1476,7 @@ const SciFiPersonaLab = () => {
     }
   };
 
-  const generatePersonaBehavior = (
-    persona: Persona, 
-    step: WorkflowStep, 
-    stepNumber: number
-  ): SimulationOutput => {
-    // Generate behavior based on persona characteristics
-    const riskLevel = persona.skills.risk_tolerance;
-    const techLevel = persona.skills.technical_expertise;
-    const securityAwareness = persona.skills.security_awareness;
-    
-    // Choose action based on persona type and characteristics
-    let action = '';
-    let actionCategory = '';
-    let vulnerabilitiesFound: string[] = [];
-    
-    if (persona.type === 'THREAT_ACTOR') {
-      if (riskLevel >= 4) {
-        action = 'Click suspicious link immediately';
-        actionCategory = 'direct_engagement';
-        vulnerabilitiesFound = ['phishing_vulnerability', 'credential_harvesting'];
-      } else {
-        action = 'Analyze link structure before clicking';
-        actionCategory = 'verification';
-        vulnerabilitiesFound = ['social_engineering_weakness'];
-      }
-    } else if (persona.type === 'SECURITY_PRACTITIONER') {
-      if (securityAwareness >= 4) {
-        action = 'Verify sender through secure channel';
-        actionCategory = 'verification';
-        vulnerabilitiesFound = ['email_spoofing', 'domain_impersonation'];
-      } else {
-        action = 'Report suspicious content to security team';
-        actionCategory = 'reporting';
-        vulnerabilitiesFound = ['process_gap'];
-      }
-    } else { // REGULAR_USER
-      if (riskLevel >= 3 && techLevel <= 2) {
-        action = 'Click link trusting familiar interface';
-        actionCategory = 'direct_engagement';
-        vulnerabilitiesFound = ['user_education_gap'];
-      } else {
-        action = 'Hesitate and seek help from IT';
-        actionCategory = 'verification';
-        vulnerabilitiesFound = ['usability_security_trade-off'];
-      }
-    }
-    
-    // Generate assessed characteristics (with some variation from predefined)
-    const assessedCharacteristics = {
-      technical_expertise: Math.max(1, Math.min(5, persona.skills.technical_expertise + (Math.random() - 0.5))),
-      privacy_concern: Math.max(1, Math.min(5, persona.skills.privacy_concern + (Math.random() - 0.5))),
-      risk_tolerance: Math.max(1, Math.min(5, persona.skills.risk_tolerance + (Math.random() - 0.5))),
-      security_awareness: Math.max(1, Math.min(5, persona.skills.security_awareness + (Math.random() - 0.5)))
-    };
-    
-    return {
-      id: `${persona.id}_step_${stepNumber}_${Date.now()}`,
-      persona_id: persona.id,
-      persona_name: persona.name,
-      step: stepNumber,
-      action: action,
-      action_category: actionCategory,
-      reasoning: generateReasoning(persona, action),
-      confidence: Math.floor(Math.random() * 2) + 3, // 3-5 range
-      timestamp: new Date().toISOString(),
-      step_title: step.title,
-      vulnerabilities_found: vulnerabilitiesFound,
-      persona_characteristics_displayed: assessedCharacteristics,
-      thinking_process: generateThinkingProcess(persona, step, action),
-      security_assessment: generateSecurityAssessment(persona, vulnerabilitiesFound)
-    };
-  };
-
-  const generateReasoning = (persona: Persona, action: string): string => {
-    const motivations = {
-      'THREAT_ACTOR': 'Looking for opportunities to exploit system weaknesses',
-      'SECURITY_PRACTITIONER': 'Following security protocols to protect organizational assets',
-      'REGULAR_USER': 'Trying to complete work tasks efficiently while avoiding problems'
-    };
-    
-    return `${motivations[persona.type]}. ${action} because ${persona.motivation}`;
-  };
-
-  const generateThinkingProcess = (persona: Persona, step: WorkflowStep, action: string) => {
-    const assessments = {
-      'THREAT_ACTOR': 'This looks like a potential attack vector',
-      'SECURITY_PRACTITIONER': 'Need to evaluate security implications carefully',
-      'REGULAR_USER': 'This seems urgent, but something feels off'
-    };
-    
-    return {
-      initial_assessment: assessments[persona.type],
-      observations: [
-        'Email sender appears legitimate',
-        'Urgency language used',
-        'Link destination unclear'
-      ],
-      option_evaluation: step.available_actions.slice(0, 2).map(opt => ({
-        option: opt || 'Default action',
-        pros: persona.type === 'THREAT_ACTOR' ? ['Quick exploitation', 'High impact'] : 
-               persona.type === 'SECURITY_PRACTITIONER' ? ['Safe approach', 'Protocol compliance'] : 
-               ['Fast completion', 'Avoids delays'],
-        cons: persona.type === 'THREAT_ACTOR' ? ['Detection risk'] : 
-               persona.type === 'SECURITY_PRACTITIONER' ? ['Time consuming'] : 
-               ['Might be dangerous', 'Could cause problems'],
-        risk_level: persona.skills.risk_tolerance >= 4 ? 'LOW' : 
-                   persona.skills.risk_tolerance >= 3 ? 'MEDIUM' : 'HIGH'
-      })),
-      decision_rationale: `Based on my ${persona.skills.security_awareness}/5 security awareness and ${persona.skills.risk_tolerance}/5 risk tolerance`,
-      uncertainty_points: [
-        'Not sure about sender authenticity',
-        'Unclear about potential consequences'
-      ]
-    };
-  };
-
-  const generateSecurityAssessment = (persona: Persona, vulnerabilities: string[]): string => {
-    if (persona.type === 'THREAT_ACTOR') {
-      return `Identified ${vulnerabilities.length} potential attack vectors for exploitation`;
-    } else if (persona.type === 'SECURITY_PRACTITIONER') {
-      return `Detected ${vulnerabilities.length} security risks requiring mitigation`;
-    } else {
-      return `Noticed ${vulnerabilities.length} concerning elements but unsure of implications`;
-    }
-  };
+  // No local simulation functions needed anymore - all behavior data comes from the API
 
   const pauseSimulation = () => {
     setIsPaused(!isPaused);
@@ -1762,20 +1611,9 @@ const SciFiPersonaLab = () => {
             </div>
           )}
           
-          {/* API Mode Toggle */}
+          {/* API Info */}
           <div className="flex items-center gap-2 mt-2">
-            <div className="text-gray-400 font-mono text-xs">LOCAL MODE</div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                value="" 
-                className="sr-only peer"
-                checked={useRemoteAPI}
-                onChange={() => setUseRemoteAPI(!useRemoteAPI)}
-              />
-              <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
-            </label>
-            <div className={`font-mono text-xs ${useRemoteAPI ? 'text-cyan-400' : 'text-gray-400'}`}>API MODE {useRemoteAPI ? "(THINK ALOUD)" : ""}</div>
+            <div className="text-cyan-400 font-mono text-xs">API MODE - PERSONA THINK ALOUD ENABLED</div>
           </div>
         </div>
 
