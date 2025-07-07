@@ -975,7 +975,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div>
-            <label className="block text-white font-mono text-xs mb-1 font-semibold">SCENARIO TITLE</label>
+            <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">SCENARIO TITLE</label>
             <input 
               type="text"
               value={newScenario.title}
@@ -986,7 +986,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
           </div>
 
           <div>
-            <label className="block text-white font-mono text-xs mb-1 font-semibold">DESCRIPTION</label>
+            <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">DESCRIPTION</label>
             <textarea 
               value={newScenario.description}
               onChange={(e) => updateNewScenario('description', e.target.value)}
@@ -996,7 +996,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
           </div>
 
           <div>
-            <label className="block text-grey font-mono text-xs mb-1 font-semibold">SYSTEM TYPE</label>
+            <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">SYSTEM TYPE</label>
             <select 
               value={newScenario.system_context.system_type}
               onChange={(e) => updateSystemContext('system_type', e.target.value)}
@@ -1017,7 +1017,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-white font-mono text-xs mb-1 font-semibold">ENVIRONMENTAL CONTEXT</label>
+            <label className="block text-yellow-300 font-mono text-xs mb-1 font-semibold">ENVIRONMENTAL CONTEXT</label>
             <textarea 
               value={newScenario.system_context.environmental_factors?.join('\n')}
               onChange={(e) => updateSystemContext('environmental_factors', e.target.value.split('\n'))}
@@ -1027,7 +1027,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
           </div>
 
           <div>
-            <label className="block text-white font-mono text-xs mb-1 font-semibold">SECURITY REQUIREMENTS</label>
+            <label className="block text-yellow-300 font-mono text-xs mb-1 font-semibold">SECURITY REQUIREMENTS</label>
             <textarea 
               value={newScenario.system_context.security_requirements?.join('\n')}
               onChange={(e) => updateSystemContext('security_requirements', e.target.value.split('\n'))}
@@ -1086,7 +1086,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-white font-mono text-xs mb-1 font-semibold">STEP TITLE</label>
+                    <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">STEP TITLE</label>
                     <input 
                       type="text"
                       value={step.title}
@@ -1097,7 +1097,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
                   </div>
                   
                   <div>
-                    <label className="block text-white font-mono text-xs mb-1 font-semibold">INTERFACE DESCRIPTION</label>
+                    <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">INTERFACE DESCRIPTION</label>
                     <textarea 
                       value={step.interface_description}
                       onChange={(e) => updateWorkflowStep(stepIndex, 'interface_description', e.target.value)}
@@ -1107,20 +1107,19 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-white font-mono text-xs mb-1 font-semibold">USER PROMPT</label>
-                  <textarea 
-                    value={step.user_prompt}
-                    onChange={(e) => updateWorkflowStep(stepIndex, 'user_prompt', e.target.value)}
-                    placeholder="What specific situation/content does the user encounter?"
-                    className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-20 shadow-sm"
-                  />
+                <div className="mb-4">                <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">USER PROMPT</label>
+                <textarea 
+                  value={step.user_prompt}
+                  onChange={(e) => updateWorkflowStep(stepIndex, 'user_prompt', e.target.value)}
+                  placeholder="What specific situation/content does the user encounter?"
+                  className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-20 shadow-sm"
+                />
                 </div>
 
                 {/* Available Actions */}
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-white font-mono text-xs font-semibold">AVAILABLE ACTIONS</label>
+                    <label className="text-cyan-300 font-mono text-xs font-semibold">AVAILABLE ACTIONS</label>
                     <button 
                       onClick={() => addActionToStep(stepIndex)}
                       className="px-2 py-1 bg-green-500/30 border border-green-500 text-green-300 rounded font-mono text-xs shadow-sm"
@@ -1151,13 +1150,12 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
                 </div>
 
                 {/* Security Elements */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-white font-mono text-xs font-semibold">SECURITY ELEMENTS</label>
-                    <button 
-                      onClick={() => addSecurityElement(stepIndex)}
-                      className="px-2 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-xs"
-                    >
+                <div>                <div className="flex justify-between items-center mb-2">
+                  <label className="text-cyan-300 font-mono text-xs font-semibold">SECURITY ELEMENTS</label>
+                  <button 
+                    onClick={() => addSecurityElement(stepIndex)}
+                    className="px-2 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-xs"
+                  >
                       <Icons.Plus className="inline mr-1" />
                       ADD ELEMENT
                     </button>

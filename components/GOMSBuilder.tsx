@@ -322,7 +322,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
       {/* Flow Metadata */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div>
-          <label className="block text-white font-mono text-xs mb-1 font-semibold">FLOW NAME</label>
+          <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">FLOW NAME</label>
           <input 
             type="text"
             value={flow.name}
@@ -331,7 +331,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
           />
         </div>
         <div>
-          <label className="block text-white font-mono text-xs mb-1 font-semibold">GOAL</label>
+          <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">GOAL</label>
           <input 
             type="text"
             value={flow.goal}
@@ -340,7 +340,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
           />
         </div>
         <div className="lg:col-span-2">
-          <label className="block text-white font-mono text-xs mb-1 font-semibold">DESCRIPTION</label>
+          <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">DESCRIPTION</label>
           <textarea 
             value={flow.description}
             onChange={(e) => updateFlow('description', e.target.value)}
@@ -421,7 +421,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-white font-mono text-xs mb-1 font-semibold">OPERATOR NAME</label>
+                  <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">OPERATOR NAME</label>
                   <input 
                     type="text"
                     value={currentOperator.name}
@@ -430,7 +430,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-white font-mono text-xs mb-1 font-semibold">DECISION POINT</label>
+                  <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">DECISION POINT</label>
                   <input 
                     type="text"
                     value={currentOperator.decision_point}
@@ -441,7 +441,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
               </div>
               
               <div>
-                <label className="block text-white font-mono text-xs mb-1 font-semibold">DESCRIPTION</label>
+                <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">DESCRIPTION</label>
                 <textarea 
                   value={currentOperator.description}
                   onChange={(e) => updateOperator(currentOperator.id, 'description', e.target.value)}
@@ -451,7 +451,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-white font-mono text-xs mb-1 font-semibold">AVAILABLE ACTIONS (one per line)</label>
+                  <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">AVAILABLE ACTIONS (one per line)</label>
                   <textarea 
                     value={currentOperator.available_actions.join('\n')}
                     onChange={(e) => handleArrayInput(currentOperator.id, 'available_actions', e.target.value)}
@@ -460,7 +460,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-white font-mono text-xs mb-1 font-semibold">NEXT STEPS (operator names, one per line)</label>
+                  <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">NEXT STEPS (operator names, one per line)</label>
                   <textarea 
                     value={currentOperator.next_steps.join('\n')}
                     onChange={(e) => handleArrayInput(currentOperator.id, 'next_steps', e.target.value)}
@@ -473,7 +473,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
               {/* UI Context Editor */}
               <div>
                 <div className="flex justify-between items-center">
-                  <label className="block text-white font-mono text-xs mb-1 font-semibold">UI ELEMENTS</label>
+                  <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">UI ELEMENTS</label>
                   <button 
                     onClick={() => addUIElement(currentOperator.id)}
                     className="px-2 py-1 bg-green-500/30 border border-green-500/70 text-green-300 rounded font-mono text-xs"
