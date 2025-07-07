@@ -134,7 +134,13 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
     operators: []
   };
 
-  const [flow, setFlow] = useState<GOMSFlow>(initialFlow !== null ? initialFlow : defaultFlow);
+  // Handle initialFlow properly with proper null/undefined checking
+  const [flow, setFlow] = useState<GOMSFlow>(() => {
+    if (initialFlow === null || initialFlow === undefined) {
+      return defaultFlow;
+    }
+    return initialFlow;
+  });
   const [currentOperatorId, setCurrentOperatorId] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
   
@@ -297,21 +303,21 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
         <div className="flex gap-2">
           <button 
             onClick={() => setShowTemplates(true)}
-            className="px-4 py-2 bg-blue-500/30 border border-blue-400 text-blue-300 rounded font-mono text-sm"
+            className="px-4 py-2 bg-blue-700 border-2 border-blue-400 text-blue-100 rounded font-mono text-sm font-bold shadow-md hover:bg-blue-600"
           >
             <Icons.Folder className="inline mr-2" />
             TEMPLATES
           </button>
           <button 
             onClick={() => addOperator()}
-            className="px-4 py-2 bg-green-500/30 border border-green-500 text-green-300 rounded font-mono text-sm"
+            className="px-4 py-2 bg-green-700 border-2 border-green-400 text-green-100 rounded font-mono text-sm font-bold shadow-md hover:bg-green-600"
           >
             <Icons.Plus className="inline mr-2" />
             ADD OPERATOR
           </button>
           <button 
             onClick={handleSave}
-            className="px-4 py-2 bg-purple-500/30 border border-purple-400 text-purple-300 rounded font-mono text-sm"
+            className="px-4 py-2 bg-purple-700 border-2 border-purple-300 text-white rounded font-mono text-sm font-bold shadow-md hover:bg-purple-600"
           >
             <Icons.Save className="inline mr-2" />
             SAVE FLOW
@@ -357,7 +363,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
               <h3 className="text-cyan-300 font-mono font-bold">OPERATOR TEMPLATES</h3>
               <button 
                 onClick={() => setShowTemplates(false)}
-                className="text-gray-400 hover:text-gray-200"
+                className="p-2 bg-red-700 border border-red-300 text-white rounded hover:bg-red-600"
               >
                 <Icons.X />
               </button>
@@ -404,7 +410,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                 </div>
                 <button 
                   onClick={(e) => { e.stopPropagation(); deleteOperator(op.id); }}
-                  className="text-red-400 hover:text-red-300"
+                  className="p-1 bg-red-700 border border-red-300 text-white rounded hover:bg-red-600"
                 >
                   <Icons.X size={14} />
                 </button>
@@ -476,7 +482,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                   <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">UI ELEMENTS</label>
                   <button 
                     onClick={() => addUIElement(currentOperator.id)}
-                    className="px-2 py-1 bg-green-500/30 border border-green-500/70 text-green-300 rounded font-mono text-xs"
+                    className="px-2 py-1 bg-green-700 border border-green-300 text-white rounded font-mono text-xs font-bold shadow-sm hover:bg-green-600"
                   >
                     <Icons.Plus className="inline mr-1" size={12} />
                     ADD UI ELEMENT
@@ -490,7 +496,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                         <div className="text-cyan-300 font-mono text-xs">ELEMENT #{idx + 1}</div>
                         <button 
                           onClick={() => removeUIElement(currentOperator.id, idx)}
-                          className="text-red-400 hover:text-red-300"
+                          className="p-1 bg-red-700 border border-red-300 text-white rounded hover:bg-red-600"
                         >
                           <Icons.X size={12} />
                         </button>
@@ -542,12 +548,12 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                           </select>
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-gray-300 font-mono text-xs mb-1">Description</label>
+                          <label className="block text-cyan-300 font-mono text-xs mb-1 font-semibold">Description</label>
                           <input 
                             type="text"
                             value={element.description || ""}
                             onChange={(e) => updateUIElement(currentOperator.id, idx, 'description', e.target.value)}
-                            className="w-full bg-black/70 border border-gray-600 rounded px-2 py-1 text-cyan-200 font-mono text-xs"
+                            className="w-full bg-black/70 border border-cyan-500/50 rounded px-2 py-1 text-cyan-200 font-mono text-xs shadow-sm"
                           />
                         </div>
                       </div>
@@ -562,7 +568,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                 <p className="mb-4">Select an operator to edit or add a new one</p>
                 <button 
                   onClick={() => addOperator()}
-                  className="px-4 py-2 bg-green-500/20 border border-green-500/50 text-green-400 rounded font-mono text-sm"
+                  className="px-4 py-2 bg-green-700 border-2 border-green-300 text-white rounded font-mono text-sm font-bold shadow-md hover:bg-green-600"
                 >
                   <Icons.Plus className="inline mr-2" />
                   ADD OPERATOR
