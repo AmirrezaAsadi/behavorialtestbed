@@ -146,7 +146,6 @@ interface Scenario {
   description: string;
   system_context: {
     system_type: string;
-    user_goals: string[];
     environmental_factors: string[];
     security_requirements: string[];
     constraints: string[];
@@ -914,7 +913,6 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
       description: '',
       system_context: {
         system_type: '',
-        user_goals: [],
         environmental_factors: [],
         security_requirements: [],
         constraints: []
@@ -977,17 +975,11 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">USER GOALS</label>
+            <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">ENVIRONMENTAL CONTEXT</label>
             <textarea 
-              placeholder="What are users trying to accomplish?"
-              className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">ENVIRONMENTAL FACTORS</label>
-            <textarea 
-              placeholder="Time pressure, distractions, context..."
+              value={newScenario.system_context.environmental_factors?.join('\n')}
+              onChange={(e) => updateSystemContext('environmental_factors', e.target.value.split('\n'))}
+              placeholder="Time pressure, distractions, contextual factors..."
               className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
             />
           </div>
@@ -995,6 +987,8 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
           <div>
             <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">SECURITY REQUIREMENTS</label>
             <textarea 
+              value={newScenario.system_context.security_requirements?.join('\n')}
+              onChange={(e) => updateSystemContext('security_requirements', e.target.value.split('\n'))}
               placeholder="Authentication, authorization, data protection..."
               className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
             />
@@ -1136,7 +1130,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
           onClick={() => setNewScenario({
             title: '',
             description: '',
-            system_context: { system_type: '', user_goals: [], environmental_factors: [], security_requirements: [], constraints: [] },
+            system_context: { system_type: '', environmental_factors: [], security_requirements: [], constraints: [] },
             workflow_steps: [],
             tasks: [],
             success_criteria: [],
@@ -1312,7 +1306,7 @@ const SciFiPersonaLab = () => {
     description: '',
     system_context: {
       system_type: '',
-      user_goals: [],
+
       environmental_factors: [],
       security_requirements: [],
       constraints: []
