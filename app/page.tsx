@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import GOMSBuilder from '../components/GOMSBuilder';
+import { convertGOMSToWorkflow, convertWorkflowToGOMS, GOMSFlow } from '../lib/types';
 
 // Complete SVG icons with props support
 interface IconProps {
@@ -773,9 +775,37 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   scenarios,
   setScenarios
 }) => {
+  const [useGOMSBuilder, setUseGOMSBuilder] = useState<boolean>(false);
+  const [gomsFlow, setGomsFlow] = useState<GOMSFlow | null>(null);
+
+  // Initialize GOMS Flow from existing workflow steps if needed
+  useEffect(() => {
+    if (newScenario.workflow_steps.length > 0 && !gomsFlow) {
+      try {
+        const initialFlow = convertWorkflowToGOMS(newScenario.workflow_steps);
+        setGomsFlow(initialFlow);
+      } catch (error) {
+        console.error("Error converting workflow to GOMS:", error);
+      }
+    }
+  }, [newScenario.workflow_steps, gomsFlow]);
+
   // Use useCallback to prevent function recreation
   const updateNewScenario = useCallback((field: string, value: any) => {
     setNewScenario((prev: Omit<Scenario, 'id'>) => ({ ...prev, [field]: value }));
+  }, [setNewScenario]);
+
+  // Handle saving of GOMS flow
+  const handleGOMSFlowSave = useCallback((flow: GOMSFlow, workflowSteps: any[]) => {
+    setGomsFlow(flow);
+    
+    // Update scenario workflow steps
+    setNewScenario(prev => ({
+      ...prev,
+      workflow_steps: workflowSteps
+    }));
+    
+    setUseGOMSBuilder(false); // Return to standard view after saving
   }, [setNewScenario]);
 
   const updateSystemContext = useCallback((field: string, value: any) => {
@@ -928,7 +958,19 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
 
   return (
     <HolographicPanel glow className="space-y-6">
-      <div className="text-cyan-600 font-mono font-bold text-lg">SCENARIO DEFINITION MATRIX</div>
+      <div className="flex justify-between items-center">
+        <div className="text-cyan-600 font-mono font-bold text-lg">SCENARIO DEFINITION MATRIX</div>
+        <button 
+          onClick={() => setUseGOMSBuilder(!useGOMSBuilder)}
+          className={`px-4 py-2 border rounded font-mono text-sm shadow-sm ${
+            useGOMSBuilder 
+              ? 'bg-purple-500/30 border-purple-500 text-purple-300' 
+              : 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+          }`}
+        >
+          {useGOMSBuilder ? 'SWITCH TO STANDARD BUILDER' : 'SWITCH TO GOMS BUILDER'}
+        </button>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
@@ -954,7 +996,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
           </div>
 
           <div>
-            <label className="block text-white font-mono text-xs mb-1 font-semibold">SYSTEM TYPE</label>
+            <label className="block text-grey font-mono text-xs mb-1 font-semibold">SYSTEM TYPE</label>
             <select 
               value={newScenario.system_context.system_type}
               onChange={(e) => updateSystemContext('system_type', e.target.value)}
@@ -1000,129 +1042,150 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
       <div>
         <div className="flex justify-between items-center mb-4">
           <div className="text-yellow-300 font-mono font-bold text-base">WORKFLOW STEPS</div>
-          <button 
-            onClick={addWorkflowStep}
-            className="px-4 py-2 bg-green-500/30 border border-green-500 text-green-300 rounded font-mono text-sm shadow-sm"
-          >
-            <Icons.Plus className="inline mr-2" />
-            ADD STEP
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setUseGOMSBuilder(!useGOMSBuilder)}
+              className={`px-4 py-2 border rounded font-mono text-sm shadow-sm ${
+                useGOMSBuilder 
+                ? 'bg-purple-500/30 border-purple-500 text-purple-300' 
+                : 'bg-gray-700/30 border-gray-600 text-gray-300'
+              }`}
+            >
+              {useGOMSBuilder ? 'USING GOMS BUILDER' : 'USE GOMS BUILDER'}
+            </button>
+            {!useGOMSBuilder && (
+              <button 
+                onClick={addWorkflowStep}
+                className="px-4 py-2 bg-green-500/30 border border-green-500 text-green-300 rounded font-mono text-sm shadow-sm"
+              >
+                <Icons.Plus className="inline mr-2" />
+                ADD STEP
+              </button>
+            )}
+          </div>
         </div>
         
-        <div className="space-y-4">
-          {newScenario.workflow_steps.map((step, stepIndex) => (
-            <div key={`step-${step.id}`} className="border border-gray-600 rounded p-4 bg-gray-900/70 shadow-md">
-              <div className="flex justify-between items-start mb-3">
-                <div className="text-cyan-300 font-mono font-bold text-sm">STEP {stepIndex + 1}</div>
-                <button 
-                  onClick={() => removeWorkflowStep(stepIndex)}
-                  className="text-red-400 hover:text-red-300"
-                >
-                  <Icons.X />
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-white font-mono text-xs mb-1 font-semibold">STEP TITLE</label>
-                  <input 
-                    type="text"
-                    value={step.title}
-                    onChange={(e) => updateWorkflowStep(stepIndex, 'title', e.target.value)}
-                    placeholder="e.g., Email Authentication Check"
-                    className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm shadow-sm"
-                  />
+        {useGOMSBuilder ? (
+          <GOMSBuilder 
+            initialFlow={gomsFlow} 
+            onSave={handleGOMSFlowSave} 
+          />
+        ) : (
+          <div className="space-y-4">
+            {newScenario.workflow_steps.map((step, stepIndex) => (
+              <div key={`step-${step.id}`} className="border border-gray-600 rounded p-4 bg-gray-900/70 shadow-md">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="text-cyan-300 font-mono font-bold text-sm">STEP {stepIndex + 1}</div>
+                  <button 
+                    onClick={() => removeWorkflowStep(stepIndex)}
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    <Icons.X />
+                  </button>
                 </div>
                 
-                <div>
-                  <label className="block text-white font-mono text-xs mb-1 font-semibold">INTERFACE DESCRIPTION</label>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-white font-mono text-xs mb-1 font-semibold">STEP TITLE</label>
+                    <input 
+                      type="text"
+                      value={step.title}
+                      onChange={(e) => updateWorkflowStep(stepIndex, 'title', e.target.value)}
+                      placeholder="e.g., Email Authentication Check"
+                      className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm shadow-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-white font-mono text-xs mb-1 font-semibold">INTERFACE DESCRIPTION</label>
+                    <textarea 
+                      value={step.interface_description}
+                      onChange={(e) => updateWorkflowStep(stepIndex, 'interface_description', e.target.value)}
+                      placeholder="Describe what the user sees..."
+                      className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-white font-mono text-xs mb-1 font-semibold">USER PROMPT</label>
                   <textarea 
-                    value={step.interface_description}
-                    onChange={(e) => updateWorkflowStep(stepIndex, 'interface_description', e.target.value)}
-                    placeholder="Describe what the user sees..."
-                    className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
+                    value={step.user_prompt}
+                    onChange={(e) => updateWorkflowStep(stepIndex, 'user_prompt', e.target.value)}
+                    placeholder="What specific situation/content does the user encounter?"
+                    className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-20 shadow-sm"
                   />
                 </div>
-              </div>
 
-              <div className="mb-4">
-                <label className="block text-white font-mono text-xs mb-1 font-semibold">USER PROMPT</label>
-                <textarea 
-                  value={step.user_prompt}
-                  onChange={(e) => updateWorkflowStep(stepIndex, 'user_prompt', e.target.value)}
-                  placeholder="What specific situation/content does the user encounter?"
-                  className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-20 shadow-sm"
-                />
-              </div>
+                {/* Available Actions */}
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-white font-mono text-xs font-semibold">AVAILABLE ACTIONS</label>
+                    <button 
+                      onClick={() => addActionToStep(stepIndex)}
+                      className="px-2 py-1 bg-green-500/30 border border-green-500 text-green-300 rounded font-mono text-xs shadow-sm"
+                    >
+                      <Icons.Plus className="inline mr-1" />
+                      ADD ACTION
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {step.available_actions.map((action, actionIndex) => (
+                      <div key={`action-${stepIndex}-${actionIndex}`} className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={action}
+                          onChange={(e) => updateWorkflowStepActions(stepIndex, actionIndex, e.target.value)}
+                          placeholder={`Action ${actionIndex + 1}`}
+                          className="flex-1 bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm shadow-sm"
+                        />
+                        <button 
+                          onClick={() => removeActionFromStep(stepIndex, actionIndex)}
+                          className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
+                        >
+                          <Icons.X />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-              {/* Available Actions */}
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-white font-mono text-xs font-semibold">AVAILABLE ACTIONS</label>
-                  <button 
-                    onClick={() => addActionToStep(stepIndex)}
-                    className="px-2 py-1 bg-green-500/30 border border-green-500 text-green-300 rounded font-mono text-xs shadow-sm"
-                  >
-                    <Icons.Plus className="inline mr-1" />
-                    ADD ACTION
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {step.available_actions.map((action, actionIndex) => (
-                    <div key={`action-${stepIndex}-${actionIndex}`} className="flex gap-2">
-                      <input 
-                        type="text"
-                        value={action}
-                        onChange={(e) => updateWorkflowStepActions(stepIndex, actionIndex, e.target.value)}
-                        placeholder={`Action ${actionIndex + 1}`}
-                        className="flex-1 bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm shadow-sm"
-                      />
-                      <button 
-                        onClick={() => removeActionFromStep(stepIndex, actionIndex)}
-                        className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
-                      >
-                        <Icons.X />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Security Elements */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-white font-mono text-xs font-semibold">SECURITY ELEMENTS</label>
-                  <button 
-                    onClick={() => addSecurityElement(stepIndex)}
-                    className="px-2 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-xs"
-                  >
-                    <Icons.Plus className="inline mr-1" />
-                    ADD ELEMENT
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {step.security_elements.map((element, elementIndex) => (
-                    <div key={`element-${stepIndex}-${elementIndex}`} className="flex gap-2">
-                      <input 
-                        type="text"
-                        value={element}
-                        onChange={(e) => updateSecurityElements(stepIndex, elementIndex, e.target.value)}
-                        placeholder={`Security indicator ${elementIndex + 1}`}
-                        className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
-                      />
-                      <button 
-                        onClick={() => removeSecurityElement(stepIndex, elementIndex)}
-                        className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
-                      >
-                        <Icons.X />
-                      </button>
-                    </div>
-                  ))}
+                {/* Security Elements */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-white font-mono text-xs font-semibold">SECURITY ELEMENTS</label>
+                    <button 
+                      onClick={() => addSecurityElement(stepIndex)}
+                      className="px-2 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-xs"
+                    >
+                      <Icons.Plus className="inline mr-1" />
+                      ADD ELEMENT
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {step.security_elements.map((element, elementIndex) => (
+                      <div key={`element-${stepIndex}-${elementIndex}`} className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={element}
+                          onChange={(e) => updateSecurityElements(stepIndex, elementIndex, e.target.value)}
+                          placeholder={`Security indicator ${elementIndex + 1}`}
+                          className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                        />
+                        <button 
+                          onClick={() => removeSecurityElement(stepIndex, elementIndex)}
+                          className="px-2 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded"
+                        >
+                          <Icons.X />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end gap-4">
@@ -1662,7 +1725,7 @@ const SciFiPersonaLab = () => {
                 ? 'border-gray-600 bg-gray-600/20 text-gray-500 cursor-not-allowed'
                 : 'border-red-500 bg-red-500/20 text-red-400 hover:bg-red-500/30'
             }`}
-          >
+                   >
             RESET
           </button>
           

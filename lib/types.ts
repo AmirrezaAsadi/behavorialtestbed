@@ -220,3 +220,113 @@ export interface AnalyticsReport {
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
+
+// GOMS Framework Interfaces
+export interface GOMSUIElement {
+  element_id: string;
+  position: string; // e.g., "top-left", "main-area", "toolbar"
+  interaction_type: 'clickable' | 'hoverable' | 'scrollable' | 'input';
+  security_level: 'low' | 'medium' | 'high' | 'critical';
+  description?: string;
+}
+
+export interface GOMSOperator {
+  id: string;
+  name: string; // e.g., "EMAIL_INITIAL_VIEW", "SENDER_INVESTIGATION"
+  description: string;
+  available_actions: string[]; // e.g., ["scan_header", "read_content", "check_sender"]
+  next_steps: string[]; // IDs of possible next operators
+  decision_point: string; // e.g., "What catches attention first?"
+  ui_context: {
+    focused_elements: GOMSUIElement[];
+  };
+  position?: { x: number; y: number }; // For visual flow builder positioning
+}
+
+export interface GOMSFlow {
+  id: string;
+  name: string;
+  description: string;
+  goal: string;
+  operators: GOMSOperator[];
+}
+
+// Helper for converting between GOMS and WorkflowStep
+export function convertGOMSToWorkflow(gomsFlow: GOMSFlow): WorkflowStep[] {
+  return gomsFlow.operators.map((operator, index) => {
+    // Find high security elements for impact assessment
+    const highSecurityElements = operator.ui_context.focused_elements.filter(
+      el => el.security_level === 'high' || el.security_level === 'critical'
+    );
+    
+    return {
+      id: index + 1,
+      title: operator.name,
+      interface_description: operator.description,
+      user_prompt: operator.decision_point,
+      available_actions: operator.available_actions,
+      system_responses: {},
+      security_elements: operator.ui_context.focused_elements.map(element => 
+        `${element.element_id} (${element.position}, ${element.security_level})`
+      ),
+      decision_points: [{
+        question: operator.decision_point,
+        options: operator.next_steps,
+        security_impact: highSecurityElements.length > 0 
+          ? `Interaction with ${highSecurityElements.length} critical elements` 
+          : "Low security impact",
+        is_security_critical: highSecurityElements.length > 0
+      }],
+      is_critical: highSecurityElements.some(el => el.security_level === 'critical')
+    };
+  });
+}
+
+export function convertWorkflowToGOMS(steps: WorkflowStep[]): GOMSFlow {
+  const operators = steps.map((step, index) => {
+    // Parse security elements to extract UI elements
+    const focusedElements = step.security_elements.map(element => {
+      const matches = element.match(/(.+) \((.+), (.+)\)/);
+      return {
+        element_id: matches?.[1] || element,
+        position: matches?.[2] || "unknown",
+        interaction_type: "clickable" as const,
+        security_level: (matches?.[3] || "low") as "low" | "medium" | "high" | "critical",
+        description: ""
+      };
+    });
+
+    // If no security elements with parsed format, create generic ones
+    if (focusedElements.length === 0 && step.security_elements.length > 0) {
+      step.security_elements.forEach((element, i) => {
+        focusedElements.push({
+          element_id: element,
+          position: "unknown",
+          interaction_type: "clickable",
+          security_level: step.decision_points?.[0]?.is_security_critical ? "high" : "low",
+          description: ""
+        });
+      });
+    }
+
+    return {
+      id: `operator_${step.id}`,
+      name: step.title,
+      description: step.interface_description,
+      available_actions: step.available_actions,
+      next_steps: step.decision_points?.[0]?.options || [],
+      decision_point: step.user_prompt || step.decision_points?.[0]?.question || "",
+      ui_context: {
+        focused_elements: focusedElements
+      }
+    };
+  });
+
+  return {
+    id: `flow_${Date.now()}`,
+    name: "Converted Flow",
+    description: "Flow converted from WorkflowSteps",
+    goal: "Automated conversion from existing workflow steps",
+    operators
+  };
+}
