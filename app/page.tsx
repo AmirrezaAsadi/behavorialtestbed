@@ -2116,9 +2116,9 @@ const SciFiPersonaLab = () => {
                         y1="160"
                         x2="200"
                         y2="20"
-                        stroke="cyan"
-                        strokeWidth="2"
-                        opacity="0.8"
+                        stroke="#00ffff"
+                        strokeWidth="2.5"
+                        opacity="1.0"
                         className="animate-spin"
                         style={{ transformOrigin: '200px 160px', animationDuration: '4s' }}
                       />
@@ -2157,7 +2157,7 @@ const SciFiPersonaLab = () => {
                           
                           {/* Persona label */}
                           <div className="absolute top-6 left-1/2 transform -translate-x-1/2 min-w-max">
-                            <div className="bg-black/80 border border-cyan-400/50 backdrop-blur-sm px-2 py-1 rounded text-xs">
+                            <div className="bg-black/90 border border-cyan-400/80 backdrop-blur-sm px-2 py-1 rounded text-xs shadow-md">
                               <div className="text-cyan-400 font-mono font-bold">{persona.name}</div>
                             </div>
                           </div>
