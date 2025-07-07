@@ -930,37 +930,37 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
 
   return (
     <HolographicPanel glow className="space-y-6">
-      <div className="text-cyan-400 font-mono font-bold text-lg">SCENARIO DEFINITION MATRIX</div>
+      <div className="text-cyan-600 font-mono font-bold text-lg">SCENARIO DEFINITION MATRIX</div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div>
-            <label className="block text-gray-400 font-mono text-xs mb-1">SCENARIO TITLE</label>
+            <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">SCENARIO TITLE</label>
             <input 
               type="text"
               value={newScenario.title}
               onChange={(e) => updateNewScenario('title', e.target.value)}
               placeholder="e.g., CORPORATE EMAIL RESPONSE"
-              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+              className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm shadow-sm"
             />
           </div>
 
           <div>
-            <label className="block text-gray-400 font-mono text-xs mb-1">DESCRIPTION</label>
+            <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">DESCRIPTION</label>
             <textarea 
               value={newScenario.description}
               onChange={(e) => updateNewScenario('description', e.target.value)}
               placeholder="Describe the security scenario..."
-              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
+              className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-20 shadow-sm"
             />
           </div>
 
           <div>
-            <label className="block text-gray-400 font-mono text-xs mb-1">SYSTEM TYPE</label>
+            <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">SYSTEM TYPE</label>
             <select 
               value={newScenario.system_context.system_type}
               onChange={(e) => updateSystemContext('system_type', e.target.value)}
-              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+              className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm shadow-sm"
             >
               <option value="">SELECT SYSTEM TYPE</option>
               <option value="web-application">WEB APPLICATION</option>
@@ -977,26 +977,26 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-gray-400 font-mono text-xs mb-1">USER GOALS</label>
+            <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">USER GOALS</label>
             <textarea 
               placeholder="What are users trying to accomplish?"
-              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
+              className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
             />
           </div>
 
           <div>
-            <label className="block text-gray-400 font-mono text-xs mb-1">ENVIRONMENTAL FACTORS</label>
+            <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">ENVIRONMENTAL FACTORS</label>
             <textarea 
               placeholder="Time pressure, distractions, context..."
-              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
+              className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
             />
           </div>
 
           <div>
-            <label className="block text-gray-400 font-mono text-xs mb-1">SECURITY REQUIREMENTS</label>
+            <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">SECURITY REQUIREMENTS</label>
             <textarea 
               placeholder="Authentication, authorization, data protection..."
-              className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
+              className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
             />
           </div>
         </div>
@@ -1005,10 +1005,10 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
       {/* Workflow Steps */}
       <div>
         <div className="flex justify-between items-center mb-4">
-          <div className="text-yellow-400 font-mono font-bold">WORKFLOW STEPS</div>
+          <div className="text-yellow-300 font-mono font-bold text-base">WORKFLOW STEPS</div>
           <button 
             onClick={addWorkflowStep}
-            className="px-4 py-2 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-sm"
+            className="px-4 py-2 bg-green-500/30 border border-green-500 text-green-300 rounded font-mono text-sm shadow-sm"
           >
             <Icons.Plus className="inline mr-2" />
             ADD STEP
@@ -1017,9 +1017,9 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
         
         <div className="space-y-4">
           {newScenario.workflow_steps.map((step, stepIndex) => (
-            <div key={`step-${step.id}`} className="border border-gray-600 rounded p-4 bg-gray-900/50">
+            <div key={`step-${step.id}`} className="border border-gray-600 rounded p-4 bg-gray-900/70 shadow-md">
               <div className="flex justify-between items-start mb-3">
-                <div className="text-cyan-400 font-mono font-bold text-sm">STEP {stepIndex + 1}</div>
+                <div className="text-cyan-300 font-mono font-bold text-sm">STEP {stepIndex + 1}</div>
                 <button 
                   onClick={() => removeWorkflowStep(stepIndex)}
                   className="text-red-400 hover:text-red-300"
@@ -1030,44 +1030,44 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-gray-400 font-mono text-xs mb-1">STEP TITLE</label>
+                  <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">STEP TITLE</label>
                   <input 
                     type="text"
                     value={step.title}
                     onChange={(e) => updateWorkflowStep(stepIndex, 'title', e.target.value)}
                     placeholder="e.g., Email Authentication Check"
-                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                    className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm shadow-sm"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-gray-400 font-mono text-xs mb-1">INTERFACE DESCRIPTION</label>
+                  <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">INTERFACE DESCRIPTION</label>
                   <textarea 
                     value={step.interface_description}
                     onChange={(e) => updateWorkflowStep(stepIndex, 'interface_description', e.target.value)}
                     placeholder="Describe what the user sees..."
-                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-16"
+                    className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
                   />
                 </div>
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-400 font-mono text-xs mb-1">USER PROMPT</label>
+                <label className="block text-gray-200 font-mono text-xs mb-1 font-semibold">USER PROMPT</label>
                 <textarea 
                   value={step.user_prompt}
                   onChange={(e) => updateWorkflowStep(stepIndex, 'user_prompt', e.target.value)}
                   placeholder="What specific situation/content does the user encounter?"
-                  className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm h-20"
+                  className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-20 shadow-sm"
                 />
               </div>
 
               {/* Available Actions */}
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-gray-400 font-mono text-xs">AVAILABLE ACTIONS</label>
+                  <label className="text-gray-200 font-mono text-xs font-semibold">AVAILABLE ACTIONS</label>
                   <button 
                     onClick={() => addActionToStep(stepIndex)}
-                    className="px-2 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-xs"
+                    className="px-2 py-1 bg-green-500/30 border border-green-500 text-green-300 rounded font-mono text-xs shadow-sm"
                   >
                     <Icons.Plus className="inline mr-1" />
                     ADD ACTION
@@ -1081,7 +1081,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
                         value={action}
                         onChange={(e) => updateWorkflowStepActions(stepIndex, actionIndex, e.target.value)}
                         placeholder={`Action ${actionIndex + 1}`}
-                        className="flex-1 bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
+                        className="flex-1 bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm shadow-sm"
                       />
                       <button 
                         onClick={() => removeActionFromStep(stepIndex, actionIndex)}
@@ -1097,7 +1097,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
               {/* Security Elements */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-gray-400 font-mono text-xs">SECURITY ELEMENTS</label>
+                  <label className="text-gray-200 font-mono text-xs font-semibold">SECURITY ELEMENTS</label>
                   <button 
                     onClick={() => addSecurityElement(stepIndex)}
                     className="px-2 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded font-mono text-xs"
