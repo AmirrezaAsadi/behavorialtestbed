@@ -236,30 +236,79 @@ const calculatePersonaFidelityIndex = (
 };
 
 const calculateActionEntropy = (actionMatrix: PersonaActionMatrix): number => {
-  // Get all unique actions across all personas
-  const allActions = new Set<string>();
-  Object.values(actionMatrix).forEach(personaActions => {
-    Object.keys(personaActions).forEach(action => allActions.add(action));
+  // Implementation based on academic paper Section 2.1.2
+  // "DI(scenario) = -∑(j=1 to m) p(aj)log p(aj)"
+  
+  // Group actions by step first (we use action keys that include step info)
+  const stepActionMatrix: Record<number, {
+    actions: Record<string, string[]>, // Map of action -> array of persona_ids
+    personaCount: number              // Unique personas in this step
+  }> = {};
+  
+  // Build step-based matrix from actionMatrix
+  Object.entries(actionMatrix).forEach(([personaId, actions]) => {
+    Object.entries(actions).forEach(([actionKey, count]) => {
+      // Extract step from actionKey (format: "step_X_action")
+      const stepMatch = actionKey.match(/step_(\d+)_/);
+      const step = stepMatch ? parseInt(stepMatch[1]) : 1;
+      const actionName = actionKey.replace(/^step_\d+_/, '');
+      
+      if (!stepActionMatrix[step]) {
+        stepActionMatrix[step] = {
+          actions: {},
+          personaCount: 0
+        };
+      }
+      
+      if (!stepActionMatrix[step].actions[actionName]) {
+        stepActionMatrix[step].actions[actionName] = [];
+      }
+      
+      if (count > 0 && !stepActionMatrix[step].actions[actionName].includes(personaId)) {
+        stepActionMatrix[step].actions[actionName].push(personaId);
+      }
+    });
   });
   
-  const totalPersonas = Object.keys(actionMatrix).length;
-  if (totalPersonas === 0) return 0;
-  
-  let entropy = 0;
-  
-  // Calculate entropy: -Σ p(aj)log p(aj)
-  allActions.forEach(action => {
-    const personasUsingAction = Object.values(actionMatrix).filter(
-      personaActions => (personaActions[action] || 0) > 0
-    ).length;
+  // Count unique personas per step
+  Object.keys(stepActionMatrix).forEach(stepKey => {
+    const step = Number(stepKey);
+    const uniquePersonas = new Set<string>();
     
-    const probability = personasUsingAction / totalPersonas;
-    if (probability > 0) {
-      entropy -= probability * Math.log2(probability);
-    }
+    Object.values(stepActionMatrix[step].actions).forEach(personaIds => {
+      personaIds.forEach(id => uniquePersonas.add(id));
+    });
+    
+    stepActionMatrix[step].personaCount = uniquePersonas.size;
   });
   
-  return entropy;
+  // Calculate entropy for each step
+  let totalEntropy = 0;
+  let stepCount = 0;
+  
+  Object.entries(stepActionMatrix).forEach(([stepKey, stepData]) => {
+    const { actions, personaCount } = stepData;
+    
+    // Skip steps with only one persona (no diversity possible)
+    if (personaCount <= 1) return;
+    
+    let stepEntropy = 0;
+    
+    // For each action, calculate p(aj) = proportion of personas performing the action
+    Object.entries(actions).forEach(([action, personaIds]) => {
+      const probability = personaIds.length / personaCount;
+      if (probability > 0) {
+        stepEntropy -= probability * Math.log2(probability);
+      }
+    });
+    
+    totalEntropy += stepEntropy;
+    stepCount++;
+  });
+  
+  // Average entropy across steps
+  const finalEntropy = stepCount > 0 ? totalEntropy / stepCount : 0;
+  return finalEntropy;
 };
 
 const calculateVulnerabilityDiscoveryScore = (

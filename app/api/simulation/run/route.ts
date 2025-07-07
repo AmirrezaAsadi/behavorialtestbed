@@ -417,33 +417,84 @@ async function calculatePersonaFidelityIndexLLM(personas: Persona[], outputs: an
   return fidelityScores;
 }
 
-// LLM-DRIVEN Behavioral Diversity Index using LLM action categorization
+// Behavioral Diversity Index implementation
+// Following Section 2.1.2: "DI(scenario) = -∑(j=1 to m) p(aj)log p(aj)"
 async function calculateBehavioralDiversityIndexLLM(outputs: any[], client: any): Promise<number> {
   if (outputs.length === 0) return 0;
   
   const validOutputs = outputs.filter(o => !o.error);
   if (validOutputs.length === 0) return 0;
 
-  // Get LLM to categorize actions into behavioral types
-  const actionCategories = await getLLMActionCategorization(validOutputs, client);
+  // Step 1: Create persona-action matrix grouped by step
+  const stepMap: Record<number, { 
+    actions: Record<string, string[]>, // Map of action -> array of persona_ids
+    personaCount: number              // Unique personas in this step
+  }> = {};
   
-  // Calculate Shannon entropy: H = -∑p(x)log₂p(x)
-  const categoryCounts: Record<string, number> = {};
-  actionCategories.forEach(category => {
-    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-  });
-  
-  const totalActions = actionCategories.length;
-  let entropy = 0;
-  
-  Object.values(categoryCounts).forEach(count => {
-    const probability = count / totalActions;
-    if (probability > 0) {
-      entropy -= probability * Math.log2(probability);
+  // Organize outputs by step and collect unique personas per step
+  validOutputs.forEach(output => {
+    const step = output.step || 1;
+    const personaId = output.persona_id;
+    const action = output.action;
+    
+    if (!stepMap[step]) {
+      stepMap[step] = { 
+        actions: {},
+        personaCount: 0
+      };
+    }
+    
+    if (!stepMap[step].actions[action]) {
+      stepMap[step].actions[action] = [];
+    }
+    
+    // Only add persona once per action per step
+    if (!stepMap[step].actions[action].includes(personaId)) {
+      stepMap[step].actions[action].push(personaId);
     }
   });
   
-  return entropy;
+  // Count unique personas per step
+  Object.keys(stepMap).forEach(stepKey => {
+    const step = Number(stepKey);
+    const uniquePersonas = new Set<string>();
+    
+    Object.values(stepMap[step].actions).forEach(personaIds => {
+      personaIds.forEach(id => uniquePersonas.add(id));
+    });
+    
+    stepMap[step].personaCount = uniquePersonas.size;
+  });
+
+  // Step 2: Calculate entropy for each step per paper's formula
+  let totalEntropy = 0;
+  let stepCount = 0;
+  
+  Object.entries(stepMap).forEach(([stepKey, stepData]) => {
+    const { actions, personaCount } = stepData;
+    
+    // Skip steps with only one persona (no diversity possible)
+    if (personaCount <= 1) return;
+    
+    let stepEntropy = 0;
+    
+    // For each action, calculate p(aj) = proportion of personas performing the action
+    Object.entries(actions).forEach(([action, personaIds]) => {
+      // p(aj) is the proportion of personas that perform action aj
+      const probability = personaIds.length / personaCount;
+      if (probability > 0) {
+        stepEntropy -= probability * Math.log2(probability);
+      }
+    });
+    
+    totalEntropy += stepEntropy;
+    stepCount++;
+  });
+  
+  // Average entropy across steps
+  const diversityIndex = stepCount > 0 ? totalEntropy / stepCount : 0;
+  
+  return diversityIndex;
 }
 
 // LLM-DRIVEN Vulnerability Detection using LLM analysis
