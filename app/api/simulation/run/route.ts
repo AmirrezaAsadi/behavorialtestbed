@@ -183,6 +183,7 @@ Respond with a JSON object:
   "security_awareness_demonstrated": 1-5,
   "grading_rationale": "Explain your grading based on specific actions and reasoning shown"
 }
+  #we added thisline
 `;
 
   try {
