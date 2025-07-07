@@ -120,7 +120,7 @@ const OPERATOR_TEMPLATES = {
 };
 
 interface GOMSBuilderProps {
-  initialFlow?: GOMSFlow;
+  initialFlow?: GOMSFlow | null;
   onSave: (flow: GOMSFlow, workflowSteps: any[]) => void;
 }
 
