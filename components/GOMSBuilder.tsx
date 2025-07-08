@@ -419,7 +419,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                   onClick={() => loadScenarioTemplate(template)}
                 >
                   <div className="font-mono text-cyan-400 font-bold text-sm mb-2">{template.name}</div>
-                  <p className="text-gray-300 text-sm mb-3">{template.description}</p>
+                  <p className="text-gray-300 text-sm mb-3">{template.system_description}</p>
                   <div className="text-xs text-gray-400">
                     <div>Operators: {template.goms_flow.length}</div>
                     <div>UI Elements: {template.ui_elements.length}</div>
