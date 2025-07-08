@@ -679,7 +679,7 @@ const PersonaEditor: React.FC<PersonaEditorProps> = ({
                 <label className="block text-gray-400 font-mono text-xs mb-1">LANGUAGES (comma separated)</label>
                 <input 
                   type="text"
-                  value={editingPersona.demographics.languages.join(', ')}
+                  value={Array.isArray(editingPersona.demographics.languages) ? editingPersona.demographics.languages.join(', ') : ''}
                   onChange={(e) => updateDemographics('languages', e.target.value.split(', '))}
                   className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-cyan-400 font-mono text-sm"
                 />
@@ -1019,7 +1019,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
           <div>
             <label className="block text-yellow-300 font-mono text-xs mb-1 font-semibold">ENVIRONMENTAL CONTEXT</label>
             <textarea 
-              value={newScenario.system_context.environmental_factors?.join('\n')}
+              value={Array.isArray(newScenario.system_context.environmental_factors) ? newScenario.system_context.environmental_factors.join('\n') : ''}
               onChange={(e) => updateSystemContext('environmental_factors', e.target.value.split('\n'))}
               placeholder="Time pressure, distractions, contextual factors..."
               className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
@@ -1029,7 +1029,7 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
           <div>
             <label className="block text-yellow-300 font-mono text-xs mb-1 font-semibold">SECURITY REQUIREMENTS</label>
             <textarea 
-              value={newScenario.system_context.security_requirements?.join('\n')}
+              value={Array.isArray(newScenario.system_context.security_requirements) ? newScenario.system_context.security_requirements.join('\n') : ''}
               onChange={(e) => updateSystemContext('security_requirements', e.target.value.split('\n'))}
               placeholder="Authentication, authorization, data protection..."
               className="w-full bg-black/70 border border-cyan-500/50 rounded px-3 py-2 text-cyan-200 font-mono text-sm h-16 shadow-sm"
@@ -1576,7 +1576,7 @@ const SciFiPersonaLab = () => {
         {/* Demographics */}
         <div className="text-xs font-mono text-gray-400">
           <div>AGE: {persona.demographics.age} | LOC: {persona.demographics.location}</div>
-          <div>LANG: {persona.demographics.languages.join(', ')}</div>
+          <div>LANG: {Array.isArray(persona.demographics.languages) ? persona.demographics.languages.join(', ') : 'Unknown'}</div>
         </div>
       </div>
     </HolographicPanel>
@@ -1845,21 +1845,26 @@ const SciFiPersonaLab = () => {
               <div className="border-t border-gray-600 pt-3">
                 <div className="text-cyan-400 font-mono font-bold text-xs mb-2">VULNERABILITY ANALYSIS</div>
                 <div className="max-h-32 overflow-y-auto space-y-1">
-                  {evaluationMetrics.vulnerability_detection_rate.vulnerabilities_detail.slice(0, 5).map((vuln: any, index: number) => (
-                    <div key={index} className="text-xs font-mono">
-                      <span className={`${
-                        vuln.severity === 'critical' ? 'text-red-400' :
-                        vuln.severity === 'high' ? 'text-orange-400' :
-                        vuln.severity === 'medium' ? 'text-yellow-400' : 'text-green-400'
-                      }`}>
-                        {vuln.severity.toUpperCase()}
-                      </span>
-                      <span className="text-gray-400 ml-2">{vuln.type.replace(/_/g, ' ')}</span>
-                      <div className="text-gray-500 ml-4 text-xs">
-                        Found by: {vuln.discovered_by.join(', ')}
+                  {evaluationMetrics.vulnerability_detection_rate.vulnerabilities_detail.slice(0, 5).map((vuln: any, index: number) => {
+                    // Find the persona name from the persona_id
+                    const personaName = selectedPersonas.find((p: Persona) => p.id === vuln.persona_id)?.name || vuln.persona_id;
+                    
+                    return (
+                      <div key={index} className="text-xs font-mono">
+                        <span className={`${
+                          vuln.severity === 'critical' ? 'text-red-400' :
+                          vuln.severity === 'high' ? 'text-orange-400' :
+                          vuln.severity === 'medium' ? 'text-yellow-400' : 'text-green-400'
+                        }`}>
+                          {vuln.severity.toUpperCase()}
+                        </span>
+                        <span className="text-gray-400 ml-2">{vuln.type.replace(/_/g, ' ')}</span>
+                        <div className="text-gray-500 ml-4 text-xs">
+                          Found by: {personaName} (Step {vuln.step})
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
