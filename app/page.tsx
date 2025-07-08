@@ -1365,7 +1365,7 @@ const SciFiPersonaLab = () => {
 
         {/* Demographics */}
         <div className="text-xs font-mono text-gray-400">
-          <div>AGE: {persona.demographics.age} | LOC: {persona.demographics.location}</div>
+          <div>AGE: {persona.demographics.age} | Location: {persona.demographics.location}</div>
           <div>LANG: {Array.isArray(persona.demographics.languages) ? persona.demographics.languages.join(', ') : 'Unknown'}</div>
         </div>
       </div>
