@@ -75,11 +75,19 @@ interface Scenario {
   tasks: any[];
 }
 
+interface SimulationConfig {
+  allow_free_form_actions?: boolean;
+  action_exploration_mode?: boolean;
+  threat_discovery_focus?: boolean;
+  behavioral_diversity_weight?: number;
+}
+
 interface SimulationRequest {
   personas: Persona[];
   scenario: Scenario;
   timeline_scope: string;
   speed: number;
+  config?: SimulationConfig;
 }
 
 function generatePersonaPrompt(persona: Persona, step: any, config?: any): string {
