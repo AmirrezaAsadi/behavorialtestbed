@@ -226,7 +226,6 @@ export interface GOMSUIElement {
   element_id: string;
   position: string; // e.g., "top-left", "main-area", "toolbar"
   interaction_type: 'clickable' | 'hoverable' | 'scrollable' | 'input';
-  security_level: 'low' | 'medium' | 'high' | 'critical';
   description?: string;
 }
 
@@ -254,9 +253,9 @@ export interface GOMSFlow {
 // Helper for converting between GOMS and WorkflowStep
 export function convertGOMSToWorkflow(gomsFlow: GOMSFlow): WorkflowStep[] {
   return gomsFlow.operators.map((operator, index) => {
-    // Find high security elements for impact assessment
-    const highSecurityElements = operator.ui_context.focused_elements.filter(
-      el => el.security_level === 'high' || el.security_level === 'critical'
+    // Find critical elements based on position or interaction type
+    const criticalElements = operator.ui_context.focused_elements.filter(
+      el => el.position.includes('modal') || el.interaction_type === 'input'
     );
     
     return {
@@ -267,17 +266,17 @@ export function convertGOMSToWorkflow(gomsFlow: GOMSFlow): WorkflowStep[] {
       available_actions: operator.available_actions,
       system_responses: {},
       security_elements: operator.ui_context.focused_elements.map(element => 
-        `${element.element_id} (${element.position}, ${element.security_level})`
+        `${element.element_id} (${element.position})`
       ),
       decision_points: [{
         question: operator.decision_point,
         options: operator.next_steps,
-        security_impact: highSecurityElements.length > 0 
-          ? `Interaction with ${highSecurityElements.length} critical elements` 
+        security_impact: criticalElements.length > 0 
+          ? `Interaction with ${criticalElements.length} critical elements` 
           : "Low security impact",
-        is_security_critical: highSecurityElements.length > 0
+        is_security_critical: criticalElements.length > 0
       }],
-      is_critical: highSecurityElements.some(el => el.security_level === 'critical')
+      is_critical: criticalElements.length > 0
     };
   });
 }
@@ -286,12 +285,11 @@ export function convertWorkflowToGOMS(steps: WorkflowStep[]): GOMSFlow {
   const operators = steps.map((step, index) => {
     // Parse security elements to extract UI elements
     const focusedElements = step.security_elements.map(element => {
-      const matches = element.match(/(.+) \((.+), (.+)\)/);
+      const matches = element.match(/(.+) \((.+)\)/);
       return {
         element_id: matches?.[1] || element,
         position: matches?.[2] || "unknown",
         interaction_type: "clickable" as const,
-        security_level: (matches?.[3] || "low") as "low" | "medium" | "high" | "critical",
         description: ""
       };
     });
@@ -303,7 +301,6 @@ export function convertWorkflowToGOMS(steps: WorkflowStep[]): GOMSFlow {
           element_id: element,
           position: "unknown",
           interaction_type: "clickable",
-          security_level: step.decision_points?.[0]?.is_security_critical ? "high" : "low",
           description: ""
         });
       });

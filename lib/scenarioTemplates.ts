@@ -63,7 +63,6 @@ export const EMAIL_SCENARIO: ScenarioTemplate = {
             element_id: "inbox_list",
             position: "left-panel",
             interaction_type: "clickable",
-            security_level: "low",
             description: "List of received emails"
           }
         ]
@@ -82,14 +81,12 @@ export const EMAIL_SCENARIO: ScenarioTemplate = {
             element_id: "message_body",
             position: "main-area",
             interaction_type: "scrollable",
-            security_level: "high",
             description: "Email content with links and attachments"
           },
           {
             element_id: "action_buttons",
             position: "toolbar",
             interaction_type: "clickable",
-            security_level: "medium",
             description: "Reply, Forward, Delete, Mark Spam buttons"
           }
         ]
@@ -153,7 +150,6 @@ export const SOCIAL_MEDIA_SCENARIO: ScenarioTemplate = {
             element_id: "news_feed",
             position: "main-area",
             interaction_type: "scrollable",
-            security_level: "medium",
             description: "Stream of posts and content"
           }
         ]
@@ -172,14 +168,12 @@ export const SOCIAL_MEDIA_SCENARIO: ScenarioTemplate = {
             element_id: "post_actions",
             position: "bottom-post",
             interaction_type: "clickable",
-            security_level: "medium",
             description: "Interaction buttons"
           },
           {
             element_id: "external_links",
             position: "embedded",
             interaction_type: "clickable",
-            security_level: "high",
             description: "External links in content"
           }
         ]
@@ -198,7 +192,6 @@ export const SOCIAL_MEDIA_SCENARIO: ScenarioTemplate = {
             element_id: "privacy_settings",
             position: "dropdown-menu",
             interaction_type: "clickable",
-            security_level: "critical",
             description: "Privacy and visibility controls"
           }
         ]
@@ -260,7 +253,6 @@ export const FILE_SHARING_SCENARIO: ScenarioTemplate = {
             element_id: "file_browser",
             position: "main-area",
             interaction_type: "clickable",
-            security_level: "medium",
             description: "File and folder listing"
           }
         ]
@@ -279,7 +271,6 @@ export const FILE_SHARING_SCENARIO: ScenarioTemplate = {
             element_id: "security_scanner",
             position: "side-panel",
             interaction_type: "clickable",
-            security_level: "high",
             description: "Security scan results and warnings"
           }
         ]
@@ -298,14 +289,12 @@ export const FILE_SHARING_SCENARIO: ScenarioTemplate = {
             element_id: "download_button",
             position: "toolbar",
             interaction_type: "clickable",
-            security_level: "high",
             description: "Download action button"
           },
           {
             element_id: "sharing_dialog",
             position: "modal",
             interaction_type: "input",
-            security_level: "critical",
             description: "Sharing and permissions interface"
           }
         ]
