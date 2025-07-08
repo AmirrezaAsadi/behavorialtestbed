@@ -1687,7 +1687,7 @@ const SciFiPersonaLab = () => {
               EVALUATION FRAMEWORK READY
             </div>
             <div className="text-gray-400 font-mono text-xs">
-              Will calculate PFI (cosine similarity), BDI (Shannon entropy), and VDR (discovery rate).
+              Will calculate Persona Fidelity, and behavorial diverstiy, and identify threats.
             </div>
           </div>
         )}
