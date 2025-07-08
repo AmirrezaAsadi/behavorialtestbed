@@ -859,12 +859,12 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
       description: '',
       system_context: {
         system_type: '',
+        user_goals: [],
         environmental_factors: [],
         security_requirements: [],
         constraints: []
       },
       workflow_steps: [],
-      tasks: [],
       success_criteria: [],
       security_elements: []
     });
@@ -1098,9 +1098,8 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
           onClick={() => setNewScenario({
             title: '',
             description: '',
-            system_context: { system_type: '', environmental_factors: [], security_requirements: [], constraints: [] },
+            system_context: { system_type: '', user_goals: [], environmental_factors: [], security_requirements: [], constraints: [] },
             workflow_steps: [],
-            tasks: [],
             success_criteria: [],
             security_elements: []
           })}
