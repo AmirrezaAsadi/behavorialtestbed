@@ -82,7 +82,10 @@ interface SimulationRequest {
   speed: number;
 }
 
-function generatePersonaPrompt(persona: Persona, step: any): string {
+function generatePersonaPrompt(persona: Persona, step: any, config?: any): string {
+  const isThreatFocused = config?.threat_discovery_focus ?? true;
+  const isExplorationMode = config?.action_exploration_mode ?? true;
+  
   return `
 You are ${persona.name}, a ${persona.type.replace('_', ' ').toLowerCase()} with the following characteristics:
 
@@ -110,7 +113,7 @@ ${step.interface_description}
 WHAT YOU SEE:
 ${step.user_prompt}
 
-AVAILABLE ACTIONS:
+SUGGESTED ACTIONS:
 ${step.available_actions.map((action: string, index: number) => `${index + 1}. ${action}`).join('\n')}
 
 ${step.security_elements?.length > 0 ? `
@@ -124,9 +127,11 @@ Based on your persona characteristics, what action would you take? Consider:
 - Your risk tolerance when making decisions
 - Your motivation and background when reasoning
 
+You can choose from the suggested actions above OR describe any other action you would realistically take in this situation. ${isExplorationMode ? 'Be creative and consider what a real person with your characteristics might do, including unexpected behaviors, workarounds, or novel approaches.' : ''} ${isThreatFocused ? 'Think about potential security vulnerabilities or attack vectors you might discover or exploit.' : ''}
+
 Respond with a JSON object containing:
 {
-  "chosen_action": "exact action from the list above",
+  "chosen_action": "describe the action you would take (can be from suggestions or your own)",
   "reasoning": "detailed explanation of why you chose this action based on your persona characteristics",
   "security_assessment": "any security concerns or observations you notice",
   "confidence": 1-5,
@@ -140,7 +145,8 @@ Respond with a JSON object containing:
       "risk_level": "LOW|MEDIUM|HIGH|CRITICAL"
     }
   ],
-  "uncertainty_points": ["any", "uncertainties", "or", "doubts"]
+  "uncertainty_points": ["any", "uncertainties", "or", "doubts"],
+  "potential_vulnerabilities": ["any", "security", "vulnerabilities", "you", "notice", "or", "could", "exploit"]
 }
 `;
 }
@@ -256,6 +262,10 @@ Categorize each action into ONE of these behavioral categories:
 - "IGNORE_DISMISS" - Dismissing, ignoring, minimal engagement
 - "SOCIAL_ENGINEERING_AWARE" - Recognizing manipulation tactics
 - "COMPLIANCE_FOCUSED" - Following policies, procedures, protocols
+- "CREATIVE_WORKAROUND" - Novel approaches, unexpected solutions, creative thinking
+- "EXPLORATORY_BEHAVIOR" - Investigating, testing, experimenting with the system
+- "SECURITY_BYPASS" - Attempting to circumvent security measures
+- "UNCONVENTIONAL_ACTION" - Actions not fitting standard categories
 
 Respond with a JSON array of categories in the same order as the actions:
 {
@@ -564,7 +574,7 @@ async function calculateComprehensiveMetrics(personas: Persona[], outputs: any[]
 export async function POST(request: NextRequest) {
   try {
     const body: SimulationRequest = await request.json();
-    const { personas, scenario, timeline_scope, speed } = body;
+    const { personas, scenario, timeline_scope, speed, config } = body;
 
     // Initialize AI client
     const client = await initializeAIClient();
@@ -593,7 +603,7 @@ export async function POST(request: NextRequest) {
       // Process each workflow step
       for (const step of activeScenario.workflow_steps) {
         try {
-          const prompt = generatePersonaPrompt(persona, step);
+          const prompt = generatePersonaPrompt(persona, step, config);
           
           console.log(`Running simulation for ${persona.name} - Step ${stepCounter}`);
           
@@ -648,6 +658,11 @@ export async function POST(request: NextRequest) {
             };
           }
 
+          // Check if action is from predefined list or free-form
+          const isActionPredefined = step.available_actions.some(
+            (availableAction: string) => availableAction.toLowerCase().trim() === parsedResponse.chosen_action.toLowerCase().trim()
+          );
+
           simulationOutputs.push({
             id: `${persona.id}_${stepCounter}`,
             persona_id: persona.id,
@@ -667,6 +682,9 @@ export async function POST(request: NextRequest) {
             },
             timestamp: new Date().toISOString(),
             step_title: step.title,
+            potential_vulnerabilities: Array.isArray(parsedResponse.potential_vulnerabilities) ? parsedResponse.potential_vulnerabilities : [],
+            is_free_form_action: !isActionPredefined,
+            action_creativity_score: isActionPredefined ? 1 : Math.min(5, Math.max(1, Math.floor(Math.random() * 3) + 3)), // Random score 3-5 for free-form actions
             persona_skills: persona.skills // Store for fidelity calculation
           });
 

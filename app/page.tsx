@@ -990,6 +990,12 @@ const SciFiPersonaLab = () => {
   const [simulationOutputs, setSimulationOutputs] = useState<SimulationOutput[]>([]);
   const [evaluationMetrics, setEvaluationMetrics] = useState<EvaluationMetrics | null>(null);
   const [gomsFlow, setGomsFlow] = useState<any>(null); // GOMS flow state
+  const [simulationConfig, setSimulationConfig] = useState({
+    allow_free_form_actions: true,
+    action_exploration_mode: true,
+    threat_discovery_focus: true,
+    behavioral_diversity_weight: 0.8
+  });
   const matrixRef = useRef<HTMLCanvasElement>(null);
 
   // Matrix background animation
@@ -1185,7 +1191,8 @@ const SciFiPersonaLab = () => {
           personas: selectedPersonas,
           scenario: activeScenario,
           timeline_scope: { max_steps: activeScenario.workflow_steps.length },
-          speed: speed
+          speed: speed,
+          config: simulationConfig
         }),
       });
       
@@ -1388,6 +1395,67 @@ const SciFiPersonaLab = () => {
           
           <div className="text-gray-400 font-mono text-xs">
             GOMS OPERATORS: {gomsFlow?.operators?.length || 0}
+          </div>
+          
+          {/* Free-form Action Configuration */}
+          <div className="border border-purple-500/30 rounded p-3 bg-purple-500/10 space-y-2">
+            <div className="text-purple-400 font-mono font-bold text-xs">
+              THREAT EXPLORATION CONFIG
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={simulationConfig.allow_free_form_actions}
+                  onChange={(e) => setSimulationConfig(prev => ({
+                    ...prev,
+                    allow_free_form_actions: e.target.checked
+                  }))}
+                  className="w-3 h-3 accent-purple-400"
+                />
+                <span className="text-purple-200 font-mono text-xs">Free Actions</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={simulationConfig.action_exploration_mode}
+                  onChange={(e) => setSimulationConfig(prev => ({
+                    ...prev,
+                    action_exploration_mode: e.target.checked
+                  }))}
+                  className="w-3 h-3 accent-purple-400"
+                />
+                <span className="text-purple-200 font-mono text-xs">Creative Mode</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={simulationConfig.threat_discovery_focus}
+                  onChange={(e) => setSimulationConfig(prev => ({
+                    ...prev,
+                    threat_discovery_focus: e.target.checked
+                  }))}
+                  className="w-3 h-3 accent-purple-400"
+                />
+                <span className="text-purple-200 font-mono text-xs">Threat Focus</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-purple-200 font-mono text-xs">Diversity:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={simulationConfig.behavioral_diversity_weight}
+                  onChange={(e) => setSimulationConfig(prev => ({
+                    ...prev,
+                    behavioral_diversity_weight: parseFloat(e.target.value)
+                  }))}
+                  className="w-16 accent-purple-400"
+                />
+                <span className="text-purple-200 font-mono text-xs">{simulationConfig.behavioral_diversity_weight.toFixed(1)}</span>
+              </div>
+            </div>
           </div>
           
           {selectedPersonas.length === 0 && (
@@ -2142,6 +2210,16 @@ const SciFiPersonaLab = () => {
                           <div className="text-cyan-400 font-mono font-bold text-xs">{output.persona_name}</div>
                           <div className="text-gray-400 font-mono text-xs">STEP {output.step}</div>
                           <div className="text-gray-500 font-mono text-xs">{output.step_title}</div>
+                          {output.is_free_form_action && (
+                            <div className="text-orange-400 font-mono text-xs bg-orange-500/20 px-2 py-1 rounded">
+                              FREE-FORM
+                            </div>
+                          )}
+                          {output.action_creativity_score && output.action_creativity_score > 3 && (
+                            <div className="text-yellow-400 font-mono text-xs bg-yellow-500/20 px-2 py-1 rounded">
+                              CREATIVE ({output.action_creativity_score}/5)
+                            </div>
+                          )}
                           {output.action_category && (
                             <div className="text-purple-400 font-mono text-xs bg-purple-500/20 px-2 py-1 rounded">
                               {output.action_category.replace('_', ' ').toUpperCase()}
@@ -2169,6 +2247,20 @@ const SciFiPersonaLab = () => {
                             <div className="space-y-1">
                               {output.vulnerabilities_found.map((vuln, i) => (
                                 <div key={i} className="text-gray-300 font-mono text-xs">
+                                  • {vuln.replace(/_/g, ' ').toUpperCase()}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Potential Vulnerabilities Identified */}
+                        {output.potential_vulnerabilities && output.potential_vulnerabilities.length > 0 && (
+                          <div className="bg-orange-500/10 border border-orange-500/30 rounded p-2 mb-3">
+                            <div className="text-orange-400 font-mono text-xs font-bold mb-1">POTENTIAL VULNERABILITIES IDENTIFIED</div>
+                            <div className="space-y-1">
+                              {output.potential_vulnerabilities.map((vuln, i) => (
+                                <div key={i} className="text-orange-300 font-mono text-xs">
                                   • {vuln.replace(/_/g, ' ').toUpperCase()}
                                 </div>
                               ))}

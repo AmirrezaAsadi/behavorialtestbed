@@ -88,6 +88,9 @@ export interface SimulationOutput {
   step_title?: string;
   error?: boolean;
   vulnerabilities_found?: string[]; // Track vulnerabilities discovered
+  potential_vulnerabilities?: string[]; // Track potential vulnerabilities identified
+  is_free_form_action?: boolean; // Flag to indicate if action was outside predefined list
+  action_creativity_score?: number; // Score for how creative/novel the action was (1-5)
   persona_characteristics_displayed?: {
     technical_expertise: number;
     privacy_concern: number;
@@ -96,11 +99,20 @@ export interface SimulationOutput {
   }; // LLM-assessed characteristics for PFI calculation
 }
 
+// Configuration interface to control free-form action behavior
+export interface SimulationConfig {
+  allow_free_form_actions: boolean; // Enable free-form actions beyond GOMS definitions
+  action_exploration_mode: boolean; // Encourage creative and unexpected actions
+  threat_discovery_focus: boolean; // Focus on finding novel threats and vulnerabilities
+  behavioral_diversity_weight: number; // Weight for encouraging diverse behaviors (0-1)
+}
+
 export interface SimulationRequest {
   personas: Persona[];
   scenario: Scenario;
   timeline_scope: TimelineScope;
   speed: number;
+  config?: SimulationConfig; // Optional configuration for simulation behavior
 }
 
 export interface SimulationResponse {
