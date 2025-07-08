@@ -1454,6 +1454,22 @@ const SciFiPersonaLab = () => {
                 uncertainty_points: ['Full thinking process available in raw format']
               };
             }
+            
+            // Ensure all arrays are properly initialized
+            processedThinking.observations = Array.isArray(processedThinking.observations) 
+              ? processedThinking.observations 
+              : [];
+            processedThinking.option_evaluation = Array.isArray(processedThinking.option_evaluation) 
+              ? processedThinking.option_evaluation.map(option => ({
+                  option: option?.option || 'Unknown option',
+                  pros: Array.isArray(option?.pros) ? option.pros : [],
+                  cons: Array.isArray(option?.cons) ? option.cons : [],
+                  risk_level: option?.risk_level || 'UNKNOWN'
+                }))
+              : [];
+            processedThinking.uncertainty_points = Array.isArray(processedThinking.uncertainty_points) 
+              ? processedThinking.uncertainty_points 
+              : [];
           } catch (error) {
             console.error('Error processing thinking output:', error);
           }
@@ -1461,7 +1477,13 @@ const SciFiPersonaLab = () => {
         
         return {
           ...output,
-          thinking_process: processedThinking
+          thinking_process: processedThinking || {
+            initial_assessment: output.reasoning || 'No assessment available',
+            observations: [],
+            option_evaluation: [],
+            decision_rationale: output.reasoning || 'No rationale provided',
+            uncertainty_points: []
+          }
         };
       });
       

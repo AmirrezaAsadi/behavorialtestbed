@@ -130,7 +130,17 @@ Respond with a JSON object containing:
   "reasoning": "detailed explanation of why you chose this action based on your persona characteristics",
   "security_assessment": "any security concerns or observations you notice",
   "confidence": 1-5,
-  "thinking_process": "your internal thought process and decision-making steps"
+  "thinking_process": "your internal thought process and decision-making steps",
+  "observations": ["list", "of", "specific", "observations"],
+  "option_evaluation": [
+    {
+      "option": "action option",
+      "pros": ["advantages"],
+      "cons": ["disadvantages"],
+      "risk_level": "LOW|MEDIUM|HIGH|CRITICAL"
+    }
+  ],
+  "uncertainty_points": ["any", "uncertainties", "or", "doubts"]
 }
 `;
 }
@@ -624,7 +634,17 @@ export async function POST(request: NextRequest) {
               reasoning: "Error in response format",
               security_assessment: "No assessment available",
               confidence: 1,
-              thinking_process: response
+              thinking_process: response,
+              observations: ["Response parsing failed"],
+              option_evaluation: [
+                {
+                  option: "Default option",
+                  pros: ["Fallback response"],
+                  cons: ["Parse error occurred"],
+                  risk_level: "UNKNOWN"
+                }
+              ],
+              uncertainty_points: ["Unable to process AI response properly"]
             };
           }
 
@@ -638,6 +658,13 @@ export async function POST(request: NextRequest) {
             security_assessment: parsedResponse.security_assessment,
             confidence: parsedResponse.confidence,
             thinking: parsedResponse.thinking_process,
+            thinking_process: {
+              initial_assessment: parsedResponse.reasoning || 'No assessment provided',
+              observations: Array.isArray(parsedResponse.observations) ? parsedResponse.observations : [],
+              option_evaluation: Array.isArray(parsedResponse.option_evaluation) ? parsedResponse.option_evaluation : [],
+              decision_rationale: parsedResponse.reasoning || 'No rationale provided',
+              uncertainty_points: Array.isArray(parsedResponse.uncertainty_points) ? parsedResponse.uncertainty_points : []
+            },
             timestamp: new Date().toISOString(),
             step_title: step.title,
             persona_skills: persona.skills // Store for fidelity calculation
@@ -661,6 +688,20 @@ export async function POST(request: NextRequest) {
             reasoning: `Error: ${stepError instanceof Error ? stepError.message : 'Unknown error'}`,
             security_assessment: "Unable to assess due to error",
             confidence: 1,
+            thinking_process: {
+              initial_assessment: "Simulation encountered an error",
+              observations: ["Error occurred during simulation"],
+              option_evaluation: [
+                {
+                  option: "Error handling",
+                  pros: ["Graceful error handling"],
+                  cons: ["No useful simulation data"],
+                  risk_level: "UNKNOWN"
+                }
+              ],
+              decision_rationale: `Error: ${stepError instanceof Error ? stepError.message : 'Unknown error'}`,
+              uncertainty_points: ["Simulation data unavailable due to error"]
+            },
             timestamp: new Date().toISOString(),
             step_title: step.title,
             error: true,
