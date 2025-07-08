@@ -187,7 +187,7 @@ Respond with a JSON object:
 `;
 
   try {
-    const model = process.env.XAI_API_KEY ? "grok-33" : "gpt-3.5-turbo";
+    const model = process.env.XAI_API_KEY ? "grok-3" : "gpt-3.5-turbo";
     
     const completion = await client.chat.completions.create({
       model: model,
