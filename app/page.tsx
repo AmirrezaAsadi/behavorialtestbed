@@ -2488,36 +2488,6 @@ const SciFiPersonaLab = () => {
             <div className="space-y-6">
               <SimulationControl />
               <SystemStats />
-              
-              {/* Timeline Events Log */}
-              <HolographicPanel>
-                <div className="text-cyan-400 font-mono font-bold text-sm mb-4">EVENT TIMELINE</div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {isRunning ? (
-                    [
-                      { time: '00:01', event: 'SIMULATION INITIALIZED', type: 'system' },
-                      { time: '00:03', event: 'PERSONAS LOADED', type: 'system' },
-                      { time: '00:05', event: 'THREAT SCENARIO ACTIVE', type: 'threat' },
-                      { time: '00:08', event: 'DECISION POINT REACHED', type: 'decision' },
-                      { time: '00:12', event: 'BEHAVIORAL DIVERGENCE DETECTED', type: 'analysis' }
-                    ].map((event, index) => (
-                      <div key={index} className={`flex items-center gap-3 text-xs font-mono p-2 rounded ${
-                        event.type === 'threat' ? 'bg-red-500/10 text-red-400' :
-                        event.type === 'decision' ? 'bg-yellow-500/10 text-yellow-400' :
-                        event.type === 'analysis' ? 'bg-purple-500/10 text-purple-400' :
-                        'bg-gray-500/10 text-gray-400'
-                      }`}>
-                        <div className="text-cyan-400 w-12">{event.time}</div>
-                        <div className="flex-1">{event.event}</div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-gray-400 font-mono text-xs text-center py-4">
-                      NO ACTIVE TIMELINE
-                    </div>
-                  )}
-                </div>
-              </HolographicPanel>
             </div>
           </div>
         )}
