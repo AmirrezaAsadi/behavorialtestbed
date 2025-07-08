@@ -379,7 +379,7 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                 >
                   <div className="font-mono text-cyan-400 font-bold text-sm mb-2">{template.name}</div>
                   <p className="text-gray-300 text-sm mb-3">{template.description}</p>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-200">
                     <div>Actions: {template.available_actions.length}</div>
                     <div>UI Elements: {template.ui_context.focused_elements.length}</div>
                   </div>
