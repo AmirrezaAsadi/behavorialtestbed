@@ -57,14 +57,12 @@ const OPERATOR_TEMPLATES = {
           element_id: "sender_field",
           position: "top-left",
           interaction_type: "clickable",
-          security_level: "high",
           description: "Email sender display"
         },
         {
           element_id: "content_area",
           position: "main-area",
           interaction_type: "scrollable",
-          security_level: "medium",
           description: "Email content body"
         }
       ]
@@ -81,14 +79,12 @@ const OPERATOR_TEMPLATES = {
           element_id: "sender_field",
           position: "highlighted",
           interaction_type: "clickable",
-          security_level: "high",
           description: "Highlighted sender information"
         },
         {
           element_id: "verification_popup",
           position: "overlay",
           interaction_type: "clickable",
-          security_level: "critical",
           description: "Sender verification options"
         }
       ]
@@ -105,14 +101,12 @@ const OPERATOR_TEMPLATES = {
           element_id: "content_area",
           position: "highlighted",
           interaction_type: "scrollable",
-          security_level: "medium",
           description: "Email body content"
         },
         {
           element_id: "link_highlighter",
           position: "automatic",
           interaction_type: "hoverable",
-          security_level: "critical",
           description: "Highlighted links in content"
         }
       ]
@@ -171,7 +165,6 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
           element_id: "default_element",
           position: "center",
           interaction_type: "clickable",
-          security_level: "low",
           description: "Default UI element"
         }]
       }
@@ -240,7 +233,6 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                   element_id: `element_${Date.now()}`,
                   position: "center",
                   interaction_type: "clickable",
-                  security_level: "low",
                   description: ""
                 }
               ]
@@ -575,19 +567,6 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                             <option value="hoverable">Hoverable</option>
                             <option value="scrollable">Scrollable</option>
                             <option value="input">Input</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-gray-300 font-mono text-xs mb-1">Security Level</label>
-                          <select
-                            value={element.security_level}
-                            onChange={(e) => updateUIElement(currentOperator.id, idx, 'security_level', e.target.value)}
-                            className="w-full bg-black/70 border border-gray-600 rounded px-2 py-1 text-cyan-200 font-mono text-xs"
-                          >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="critical">Critical</option>
                           </select>
                         </div>
                         <div className="col-span-2">
