@@ -108,116 +108,7 @@ export const EMAIL_SCENARIO: ScenarioTemplate = {
   }
 };
 
-// Banking App Template
-export const BANKING_SCENARIO: ScenarioTemplate = {
-  id: "banking_app",
-  name: "Mobile Banking Authentication",
-  system_description: "Mobile banking application for account access and transactions",
-  
-  ui_elements: [
-    {
-      element_id: "login_form",
-      position: "center-screen",
-      interaction_type: "input",
-      security_level: "critical",
-      description: "Username and password input fields"
-    },
-    {
-      element_id: "biometric_prompt",
-      position: "overlay",
-      interaction_type: "clickable",
-      security_level: "high",
-      description: "Fingerprint or face ID authentication option"
-    },
-    {
-      element_id: "transaction_area",
-      position: "main-area",
-      interaction_type: "scrollable",
-      security_level: "high",
-      description: "Account balance and transaction options"
-    },
-    {
-      element_id: "security_warnings",
-      position: "top-banner",
-      interaction_type: "clickable",
-      security_level: "medium",
-      description: "Security notifications and alerts"
-    }
-  ],
 
-  goms_flow: [
-    {
-      id: "app_launch",
-      name: "APP_LAUNCH",
-      description: "User opens banking app and sees login screen",
-      available_actions: ["enter_credentials", "use_biometric", "forgot_password", "cancel"],
-      next_steps: ["credential_verification"],
-      decision_point: "How to authenticate?",
-      ui_context: {
-        focused_elements: [
-          {
-            element_id: "login_form",
-            position: "center-screen",
-            interaction_type: "input",
-            security_level: "critical",
-            description: "Username and password input fields"
-          },
-          {
-            element_id: "biometric_prompt",
-            position: "overlay",
-            interaction_type: "clickable",
-            security_level: "high",
-            description: "Biometric authentication option"
-          }
-        ]
-      }
-    },
-    {
-      id: "credential_verification",
-      name: "CREDENTIAL_VERIFICATION",
-      description: "System processes authentication attempt",
-      available_actions: ["proceed_to_account", "retry_login", "contact_support", "enable_notifications"],
-      next_steps: ["account_access"],
-      decision_point: "Authentication successful - what to do next?",
-      ui_context: {
-        focused_elements: [
-          {
-            element_id: "security_warnings",
-            position: "top-banner",
-            interaction_type: "clickable",
-            security_level: "medium",
-            description: "Security notifications and alerts"
-          }
-        ]
-      }
-    },
-    {
-      id: "account_access",
-      name: "ACCOUNT_ACCESS",
-      description: "User views account information and transaction options",
-      available_actions: ["check_balance", "transfer_money", "pay_bills", "view_statements", "logout"],
-      next_steps: [],
-      decision_point: "What banking operation to perform?",
-      ui_context: {
-        focused_elements: [
-          {
-            element_id: "transaction_area",
-            position: "main-area",
-            interaction_type: "scrollable",
-            security_level: "high",
-            description: "Account balance and transaction options"
-          }
-        ]
-      }
-    }
-  ],
-
-  tech_stack: {
-    security_features: ["2FA", "Biometric authentication", "SSL encryption", "Session timeout"],
-    potential_threats: ["Credential theft", "Session hijacking", "Man-in-the-middle", "Malware"],
-    stack: ["React Native", "REST API", "OAuth 2.0", "TLS 1.3"]
-  }
-};
 
 // Social Media Template
 export const SOCIAL_MEDIA_SCENARIO: ScenarioTemplate = {
@@ -444,7 +335,6 @@ export const FILE_SHARING_SCENARIO: ScenarioTemplate = {
 // Export all templates
 export const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   EMAIL_SCENARIO,
-  BANKING_SCENARIO,
   SOCIAL_MEDIA_SCENARIO,
   FILE_SHARING_SCENARIO
 ];
