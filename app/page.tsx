@@ -1413,7 +1413,7 @@ const SciFiPersonaLab = () => {
                   }))}
                   className="w-3 h-3 accent-purple-400"
                 />
-                <span className="text-purple-200 font-mono text-xs">Free Actions</span>
+                <span className="text-purple-500 font-mono text-xs">Free Actions</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -1425,7 +1425,7 @@ const SciFiPersonaLab = () => {
                   }))}
                   className="w-3 h-3 accent-purple-400"
                 />
-                <span className="text-purple-200 font-mono text-xs">Creative Mode</span>
+                <span className="text-purple-500 font-mono text-xs">Creative Mode</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -1437,10 +1437,10 @@ const SciFiPersonaLab = () => {
                   }))}
                   className="w-3 h-3 accent-purple-400"
                 />
-                <span className="text-purple-200 font-mono text-xs">Threat Focus</span>
+                <span className="text-purple-500 font-mono text-xs">Threat Focus</span>
               </label>
               <div className="flex items-center gap-2">
-                <span className="text-purple-200 font-mono text-xs">Diversity:</span>
+                <span className="text-purple-500 font-mono text-xs">Diversity:</span>
                 <input
                   type="range"
                   min="0"
