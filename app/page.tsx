@@ -1621,9 +1621,14 @@ const SciFiPersonaLab = () => {
                     
                     // For each action, count personas that performed it
                     return Array.from(allActions).map(action => {
-                      const personasWithAction = Object.entries(evaluationMetrics.action_matrix)
-                        .filter(([_, actions]) => actions[action] && actions[action] > 0)
-                        .map(([personaId, _]) => {
+                      const actionMatrix = evaluationMetrics.action_matrix || {};
+                      const personasWithAction = Object.entries(actionMatrix)
+                        .filter(entry => {
+                          const [_, actions] = entry as [string, Record<string, number>];
+                          return actions[action] && actions[action] > 0;
+                        })
+                        .map(entry => {
+                          const [personaId] = entry as [string, Record<string, number>];
                           const persona = selectedPersonas.find(p => p.id === personaId);
                           return persona?.name || personaId;
                         });
@@ -1656,7 +1661,7 @@ const SciFiPersonaLab = () => {
                 {/* Original persona-action matrix */}
                 <div className="text-cyan-400 font-mono text-xs mt-3 mb-2">ACTIONS BY PERSONA:</div>
                 <div className="max-h-32 overflow-y-auto space-y-1">
-                  {Object.entries(evaluationMetrics.action_matrix).map(([personaId, actions]) => {
+                  {Object.entries(evaluationMetrics.action_matrix || {}).map(([personaId, actions]) => {
                     const persona = selectedPersonas.find(p => p.id === personaId);
                     return (
                       <div key={personaId} className="text-xs">
@@ -2092,10 +2097,10 @@ const SciFiPersonaLab = () => {
                 {evaluationMetrics?.action_matrix && (
                   <div className="mb-4 p-3 border border-purple-500/30 rounded bg-purple-500/10">
                     <div className="text-purple-400 font-mono font-bold text-xs mb-2">
-                      PERSONA-ACTION MATRIX (Entropy: {evaluationMetrics.action_entropy.toFixed(2)})
+                      PERSONA-ACTION MATRIX (Entropy: {evaluationMetrics.action_entropy?.toFixed(2) || "0.00"})
                     </div>
                     <div className="grid gap-1 text-xs font-mono">
-                      {Object.entries(evaluationMetrics.action_matrix).map(([personaId, actions]) => {
+                      {Object.entries(evaluationMetrics.action_matrix || {}).map(([personaId, actions]) => {
                         const persona = selectedPersonas.find(p => p.id === personaId);
                         const totalActions = Object.values(actions).reduce((sum: number, count) => sum + count, 0);
                         return (

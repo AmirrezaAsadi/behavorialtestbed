@@ -160,7 +160,7 @@ export interface EvaluationMetrics {
   // Extended metrics for the evaluation framework
   persona_fidelity_scores?: Record<string, number>;
   action_entropy: number;
-  action_matrix?: Record<string, Record<string, number>>;
+  action_matrix: Record<string, Record<string, number>>; // No longer optional
   vulnerability_detection_rate?: {
     unique_vulnerabilities: number;
     critical_count: number;
