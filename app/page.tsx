@@ -2155,7 +2155,7 @@ const SciFiPersonaLab = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               {/* Radar Display */}
-              <HolographicPanel glow className="h-96">
+              <HolographicPanel glow className="h-[32rem]">
                 <div className="text-cyan-300 font-mono font-bold text-sm mb-4 flex items-center gap-2">
                   <Icons.TrendingUp />
                   PERSONA RADAR MATRIX
@@ -2166,7 +2166,7 @@ const SciFiPersonaLab = () => {
                     NO PERSONAS SELECTED - GO TO PERSONAS TAB TO SELECT
                   </div>
                 ) : (
-                  <div className="relative h-80 overflow-hidden">
+                  <div className="relative h-[28rem] overflow-hidden">
                     {/* Radar Grid */}
                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 320">
                       {/* Concentric circles */}
