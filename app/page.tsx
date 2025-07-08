@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import GOMSBuilder from '../components/GOMSBuilder';
-import { convertGOMSToWorkflow, convertWorkflowToGOMS, GOMSFlow } from '../lib/types';
+import { GOMSFlow, convertGOMSToWorkflow, convertWorkflowToGOMS } from '../lib/types';
+import { SCENARIO_TEMPLATES, templateToGOMSFlow, ScenarioTemplate } from '../lib/scenarioTemplates';
 
 // Complete SVG icons with props support
 interface IconProps {
@@ -767,16 +768,20 @@ interface ScenarioBuilderProps {
   setNewScenario: (scenario: Omit<Scenario, 'id'> | ((prev: Omit<Scenario, 'id'>) => Omit<Scenario, 'id'>)) => void;
   scenarios: Scenario[];
   setScenarios: (scenarios: Scenario[] | ((prev: Scenario[]) => Scenario[])) => void;
+  gomsFlow: any;
+  setGomsFlow: (flow: any) => void;
 }
 
 const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   newScenario,
   setNewScenario,
   scenarios,
-  setScenarios
+  setScenarios,
+  gomsFlow,
+  setGomsFlow
 }) => {
-  const [useGOMSBuilder, setUseGOMSBuilder] = useState<boolean>(false);
-  const [gomsFlow, setGomsFlow] = useState<GOMSFlow | null>(null);
+  const [showManualSteps, setShowManualSteps] = useState<boolean>(false);
+  const [useGOMSBuilder, setUseGOMSBuilder] = useState<boolean>(true); // Default to GOMS Builder
 
   // Initialize GOMS Flow from existing workflow steps if needed
   useEffect(() => {
@@ -954,23 +959,14 @@ const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
     });
     
     alert('Scenario saved successfully!');
-  }, [newScenario, setScenarios, setNewScenario]);
-
-  return (
-    <HolographicPanel glow className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="text-cyan-600 font-mono font-bold text-lg">SCENARIO DEFINITION MATRIX</div>
-        <button 
-          onClick={() => setUseGOMSBuilder(!useGOMSBuilder)}
-          className={`px-4 py-2 border rounded font-mono text-sm shadow-sm ${
-            useGOMSBuilder 
-              ? 'bg-purple-500/30 border-purple-500 text-purple-300' 
-              : 'bg-blue-500/20 border-blue-500/50 text-blue-300'
-          }`}
-        >
-          {useGOMSBuilder ? 'SWITCH TO STANDARD BUILDER' : 'SWITCH TO GOMS BUILDER'}
-        </button>
-      </div>
+  }, [newScenario, setScenarios, setNewScenario]);    return (
+      <HolographicPanel glow className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="text-cyan-600 font-mono font-bold text-lg">SCENARIO DEFINITION MATRIX</div>
+          <div className="text-gray-400 font-mono text-xs">
+            {gomsFlow?.operators?.length || 0} GOMS operators defined
+          </div>
+        </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
@@ -1230,6 +1226,7 @@ const SciFiPersonaLab = () => {
   const [evaluationMetrics, setEvaluationMetrics] = useState<EvaluationMetrics | null>(null);
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
+  const [gomsFlow, setGomsFlow] = useState<any>(null); // Add GOMS flow state
   const matrixRef = useRef<HTMLCanvasElement>(null);
 
   // Matrix background animation
@@ -1386,7 +1383,28 @@ const SciFiPersonaLab = () => {
     }
 
     if (!activeScenario) {
-      alert('Please create and select a scenario first using the Scenario Builder');
+      alert('Please create and select a scenario first using the GOMS Builder');
+      return;
+    }
+
+    // Ensure workflow steps exist - prioritize GOMS conversion
+    let scenarioToUse = activeScenario;
+    if (gomsFlow?.operators?.length > 0) {
+      // Always use GOMS operators if available
+      try {
+        const workflowSteps = convertGOMSToWorkflow(gomsFlow);
+        scenarioToUse = {
+          ...activeScenario,
+          workflow_steps: workflowSteps
+        };
+      } catch (error) {
+        console.error('Error converting GOMS operators to workflow steps:', error);
+        // Fall back to existing workflow steps
+      }
+    }
+
+    if (scenarioToUse.workflow_steps.length === 0) {
+      alert('No workflow steps available - please create GOMS operators or manual steps');
       return;
     }
 
@@ -1585,7 +1603,16 @@ const SciFiPersonaLab = () => {
   // Enhanced simulation control with proper validation and state management
   const SimulationControl = () => {
     const canCalculateEntropy = selectedPersonas.length > 1;
-    const hasScenario = activeScenario && activeScenario.workflow_steps.length > 0;
+    
+    // Updated validation - check for GOMS operators first, then workflow steps
+    const hasScenario = activeScenario && (
+      (gomsFlow && gomsFlow.operators && gomsFlow.operators.length > 0) || 
+      (activeScenario.workflow_steps.length > 0)
+    );
+    
+    const scenarioSource = activeScenario ? 
+      (gomsFlow && gomsFlow.operators && gomsFlow.operators.length > 0 ? 'GOMS operators' : 'manual steps') : 
+      'none';
     
     return (
       <HolographicPanel glow className="space-y-4">
@@ -1600,7 +1627,10 @@ const SciFiPersonaLab = () => {
           </div>
           
           <div className="text-gray-400 font-mono text-xs">
-            ACTIVE SCENARIO: {activeScenario ? `${activeScenario.title} (${activeScenario.workflow_steps.length} steps)` : 'None'}
+            ACTIVE SCENARIO: {activeScenario ? 
+              `${activeScenario.title} (${scenarioSource})` : 
+              'None'
+            }
           </div>
           
           {selectedPersonas.length === 0 && (
@@ -1611,7 +1641,7 @@ const SciFiPersonaLab = () => {
           
           {!hasScenario && (
             <div className="text-red-400 font-mono text-xs border border-red-500/30 rounded p-2 bg-red-500/10">
-              ⚠ NO SCENARIO DEFINED - Use Scenario Builder
+              ⚠ NO SCENARIO DEFINED - Use GOMS Builder for best results
             </div>
           )}
           
@@ -2000,16 +2030,54 @@ const SciFiPersonaLab = () => {
 
         {activeTab === 'scenarios' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div className="text-cyan-400 font-mono font-bold text-lg">SCENARIO MANAGEMENT</div>
-              <div className="flex gap-2">              <button 
-                onClick={() => setActiveScenario(null)}
-                className="px-4 py-2 bg-blue-100 border border-blue-300 text-blue-700 rounded font-mono text-sm"
-                >
-                  CREATE NEW
-                </button>
+            {/* Header */}
+            <div className="text-cyan-300 font-mono font-bold text-xl mb-4">SCENARIO TEMPLATES & BUILDER</div>
+            
+            {/* Scenario Templates Gallery */}
+            <HolographicPanel>
+              <div className="text-cyan-400 font-mono font-bold text-sm mb-4">QUICK START TEMPLATES</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {SCENARIO_TEMPLATES.map(template => (
+                  <div 
+                    key={template.id}
+                    className="border border-gray-600 rounded-lg p-4 hover:border-cyan-500 cursor-pointer bg-gray-900/50 transition-all"
+                    onClick={() => {
+                      // Load template as new scenario
+                      const gomsFlow = templateToGOMSFlow(template);
+                      const workflowSteps = convertGOMSToWorkflow(gomsFlow);
+                      
+                      setNewScenario({
+                        title: template.name,
+                        description: template.system_description,
+                        system_context: {
+                          system_type: template.tech_stack?.stack?.[0] || 'web-application',
+                          environmental_factors: template.tech_stack?.potential_threats || [],
+                          security_requirements: template.tech_stack?.security_features || [],
+                          constraints: []
+                        },
+                        workflow_steps: workflowSteps,
+                        tasks: [],
+                        success_criteria: [],
+                        security_elements: template.ui_elements.map(el => `${el.element_id} (${el.position}, ${el.security_level})`)
+                      });
+                      
+                      setGomsFlow(gomsFlow);
+                      alert(`Template "${template.name}" loaded! You can now customize and save it.`);
+                    }}
+                  >
+                    <div className="font-mono text-cyan-400 font-bold text-sm mb-2">{template.name}</div>
+                    <p className="text-gray-300 text-xs mb-3 line-clamp-3">{template.system_description}</p>
+                    <div className="text-xs text-gray-400 space-y-1">
+                      <div>🔧 {template.goms_flow.length} operators</div>
+                      <div>🖥️ {template.ui_elements.length} UI elements</div>
+                      {template.tech_stack && (
+                        <div>⚡ {template.tech_stack.security_features.length} security features</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            </HolographicPanel>
 
             {/* Scenario Builder */}
             <ScenarioBuilder 
@@ -2017,6 +2085,8 @@ const SciFiPersonaLab = () => {
               setNewScenario={setNewScenario}
               scenarios={scenarios}
               setScenarios={setScenarios}
+              gomsFlow={gomsFlow}
+              setGomsFlow={setGomsFlow}
             />
 
             {/* Custom Scenarios List */}

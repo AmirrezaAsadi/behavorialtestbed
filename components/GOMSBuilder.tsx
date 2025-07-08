@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { GOMSOperator, GOMSFlow, GOMSUIElement, convertGOMSToWorkflow } from '../lib/types';
+import { SCENARIO_TEMPLATES, templateToGOMSFlow, ScenarioTemplate } from '../lib/scenarioTemplates';
 
 // Icons for UI
 const Icons = {
@@ -143,9 +144,18 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
   });
   const [currentOperatorId, setCurrentOperatorId] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showScenarioTemplates, setShowScenarioTemplates] = useState(false);
   
   // Find current operator being edited
   const currentOperator = flow.operators.find(op => op.id === currentOperatorId);
+
+  // Load full scenario from template
+  const loadScenarioTemplate = (template: ScenarioTemplate) => {
+    const gomsFlow = templateToGOMSFlow(template);
+    setFlow(gomsFlow);
+    setShowScenarioTemplates(false);
+    setCurrentOperatorId(null);
+  };
 
   // Add a new operator from template or blank
   const addOperator = (template?: any) => {
@@ -302,18 +312,18 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
         <div className="text-cyan-300 font-mono font-bold text-lg">GOMS WORKFLOW BUILDER</div>
         <div className="flex gap-2">
           <button 
+            onClick={() => setShowScenarioTemplates(true)}
+            className="px-4 py-2 bg-purple-700 border-2 border-purple-400 text-purple-100 rounded font-mono text-sm font-bold shadow-md hover:bg-purple-600"
+          >
+            <Icons.Folder className="inline mr-2" />
+            SCENARIOS
+          </button>
+          <button 
             onClick={() => setShowTemplates(true)}
             className="px-4 py-2 bg-blue-700 border-2 border-blue-400 text-blue-100 rounded font-mono text-sm font-bold shadow-md hover:bg-blue-600"
           >
             <Icons.Folder className="inline mr-2" />
             TEMPLATES
-          </button>
-          <button 
-            onClick={() => addOperator()}
-            className="px-4 py-2 bg-green-700 border-2 border-green-400 text-green-100 rounded font-mono text-sm font-bold shadow-md hover:bg-green-600"
-          >
-            <Icons.Plus className="inline mr-2" />
-            ADD OPERATOR
           </button>
           <button 
             onClick={handleSave}
@@ -380,6 +390,39 @@ const GOMSBuilder: React.FC<GOMSBuilderProps> = ({ initialFlow, onSave }) => {
                   <div className="text-xs text-gray-400">
                     <div>Actions: {template.available_actions.length}</div>
                     <div>UI Elements: {template.ui_context.focused_elements.length}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scenario Template Selector Modal */}
+      {showScenarioTemplates && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-cyan-500/30 rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-cyan-300 font-mono font-bold">SCENARIO TEMPLATES</h3>
+              <button 
+                onClick={() => setShowScenarioTemplates(false)}
+                className="p-2 bg-red-700 border border-red-300 text-white rounded hover:bg-red-600"
+              >
+                <Icons.X />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {SCENARIO_TEMPLATES.map((template) => (
+                <div 
+                  key={template.id} 
+                  className="border border-gray-700 rounded-lg p-4 hover:border-cyan-500 cursor-pointer bg-gray-800/50"
+                  onClick={() => loadScenarioTemplate(template)}
+                >
+                  <div className="font-mono text-cyan-400 font-bold text-sm mb-2">{template.name}</div>
+                  <p className="text-gray-300 text-sm mb-3">{template.description}</p>
+                  <div className="text-xs text-gray-400">
+                    <div>Operators: {template.goms_flow.length}</div>
+                    <div>UI Elements: {template.ui_elements.length}</div>
                   </div>
                 </div>
               ))}
