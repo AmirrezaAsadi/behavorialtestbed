@@ -1460,7 +1460,7 @@ const SciFiPersonaLab = () => {
               ? processedThinking.observations 
               : [];
             processedThinking.option_evaluation = Array.isArray(processedThinking.option_evaluation) 
-              ? processedThinking.option_evaluation.map(option => ({
+              ? processedThinking.option_evaluation.map((option: any) => ({
                   option: option?.option || 'Unknown option',
                   pros: Array.isArray(option?.pros) ? option.pros : [],
                   cons: Array.isArray(option?.cons) ? option.cons : [],
