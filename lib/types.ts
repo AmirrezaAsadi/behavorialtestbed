@@ -55,18 +55,11 @@ export interface Scenario {
     constraints: string[];
   };
   workflow_steps: WorkflowStep[];
-  tasks: Task[];
   success_criteria: string[];
   security_elements: string[];
 }
 
-export interface Task {
-  id: number;
-  name: string;
-  description: string;
-  is_critical: boolean;
-  security_implications: string[];
-}
+
 
 export interface SimulationOutput {
   id: string;
@@ -74,13 +67,33 @@ export interface SimulationOutput {
   persona_name: string;
   step: number;
   action: string;
+  action_category?: string; // For action matrix analysis
   reasoning: string;
   security_assessment: string;
   confidence: number;
   thinking?: string;
+  thinking_process?: {
+    initial_assessment: string;
+    observations: string[];
+    option_evaluation: {
+      option: string;
+      pros: string[];
+      cons: string[];
+      risk_level: string;
+    }[];
+    decision_rationale: string;
+    uncertainty_points: string[];
+  };
   timestamp: string;
   step_title?: string;
   error?: boolean;
+  vulnerabilities_found?: string[]; // Track vulnerabilities discovered
+  persona_characteristics_displayed?: {
+    technical_expertise: number;
+    privacy_concern: number;
+    risk_tolerance: number;
+    security_awareness: number;
+  }; // LLM-assessed characteristics for PFI calculation
 }
 
 export interface SimulationRequest {
@@ -144,6 +157,21 @@ export interface EvaluationMetrics {
   persona_fidelity_index: number;    // Cosine similarity (-1 to 1)
   behavioral_diversity_index: number; // Shannon entropy
   vulnerability_discovery_rate: number; // Unique vulnerabilities found
+  // Extended metrics for the evaluation framework
+  persona_fidelity_scores?: Record<string, number>;
+  action_entropy: number;
+  action_matrix?: Record<string, Record<string, number>>;
+  vulnerability_detection_rate?: {
+    unique_vulnerabilities: number;
+    critical_count: number;
+    discovery_scores: Record<string, number>;
+    vulnerabilities_detail: Array<{
+      type: string;
+      severity: string;
+      persona_id: string;
+      step: number;
+    }>;
+  };
 }
 
 // UI State types

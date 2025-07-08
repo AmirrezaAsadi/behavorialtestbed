@@ -2,7 +2,16 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import GOMSBuilder from '../components/GOMSBuilder';
-import { GOMSFlow, convertGOMSToWorkflow, convertWorkflowToGOMS } from '../lib/types';
+import { 
+  GOMSFlow, 
+  convertGOMSToWorkflow, 
+  convertWorkflowToGOMS,
+  Persona,
+  Scenario,
+  WorkflowStep,
+  SimulationOutput,
+  EvaluationMetrics
+} from '../lib/types';
 import { SCENARIO_TEMPLATES, templateToGOMSFlow, ScenarioTemplate } from '../lib/scenarioTemplates';
 
 // Complete SVG icons with props support
@@ -109,113 +118,14 @@ const Icons = {
 };
 
 // Complete type definitions
-interface Persona {
-  id: string;
-  name: string;
-  type: 'THREAT_ACTOR' | 'SECURITY_PRACTITIONER' | 'REGULAR_USER';
-  subtype: string;
-  demographics: {
-    age: number;
-    background: string;
-    location: string;
-    languages: string[];
-    nationality: string;
-  };
-  skills: {
-    technical_expertise: number;
-    privacy_concern: number;
-    risk_tolerance: number;
-    security_awareness: number;
-  };
-  behavioral_patterns: string[];
-  motivation: string;
-  position: { x: number; y: number; z: number };
-}
-
-interface WorkflowStep {
-  id: number;
-  title: string;
-  interface_description: string;
-  user_prompt: string;
-  available_actions: string[];
-  system_responses: Record<string, string>;
-  security_elements: string[];
-  decision_points: any[];
-}
-
-interface Scenario {
-  id: number;
-  title: string;
-  description: string;
-  system_context: {
-    system_type: string;
-    environmental_factors: string[];
-    security_requirements: string[];
-    constraints: string[];
-  };
-  workflow_steps: WorkflowStep[];
-  tasks: any[];
-  success_criteria: string[];
-  security_elements: string[];
-}
-
-interface SimulationOutput {
-  id: string;
-  persona_id: string;
-  persona_name: string;
-  step: number;
-  action: string;
-  action_category: string; // For action matrix analysis
-  reasoning: string;
-  confidence: number;
-  timestamp: string;
-  step_title?: string;
-  error?: boolean;
-  thinking_process?: {
-    initial_assessment: string;
-    observations: string[];
-    option_evaluation: {
-      option: string;
-      pros: string[];
-      cons: string[];
-      risk_level: string;
-    }[];
-    decision_rationale: string;
-    uncertainty_points: string[];
-  };
-  security_assessment?: string;
-  vulnerabilities_found?: string[]; // Track vulnerabilities discovered
-  persona_characteristics_displayed?: {
-    technical_expertise: number;
-    privacy_concern: number;
-    risk_tolerance: number;
-    security_awareness: number;
-  }; // LLM-assessed characteristics for PFI calculation
-}
+// Note: Main types imported from lib/types.ts
 
 // New interfaces for evaluation framework
+// Local interfaces for specific use cases
 interface PersonaActionMatrix {
   [personaId: string]: {
     [actionCategory: string]: number; // Count of times this action was taken
   };
-}
-
-interface EvaluationMetrics {
-  persona_fidelity_scores: { [personaId: string]: number };
-  behavioral_diversity_index: number;
-  vulnerability_detection_rate: {
-    discovery_scores: { [personaId: string]: number };
-    unique_vulnerabilities: number;
-    critical_count: number;
-    vulnerabilities_detail: Array<{
-      type: string;
-      severity: string;
-      discovered_by: string[];
-    }>;
-  };
-  action_matrix: PersonaActionMatrix;
-  action_entropy: number;
-  semantic_similarity_matrix?: number[][];
 }
 
 // Mathematical evaluation functions based on the paper
@@ -355,31 +265,30 @@ const categorizeAction = (action: string): string => {
 const extractVulnerabilities = (outputs: SimulationOutput[]): Array<{
   type: string;
   severity: string;
-  discovered_by: string[];
+  persona_id: string;
+  step: number;
 }> => {
-  const vulnerabilityMap = new Map<string, {type: string; severity: string; discovered_by: Set<string>}>();
+  const vulnerabilities: Array<{
+    type: string;
+    severity: string;
+    persona_id: string;
+    step: number;
+  }> = [];
   
   outputs.forEach(output => {
     if (output.vulnerabilities_found) {
       output.vulnerabilities_found.forEach(vuln => {
-        const key = vuln.toLowerCase();
-        if (!vulnerabilityMap.has(key)) {
-          vulnerabilityMap.set(key, {
-            type: vuln,
-            severity: assessVulnerabilitySeverity(vuln),
-            discovered_by: new Set()
-          });
-        }
-        vulnerabilityMap.get(key)!.discovered_by.add(output.persona_name);
+        vulnerabilities.push({
+          type: vuln,
+          severity: assessVulnerabilitySeverity(vuln),
+          persona_id: output.persona_id,
+          step: output.step
+        });
       });
     }
   });
   
-  return Array.from(vulnerabilityMap.values()).map(vuln => ({
-    type: vuln.type,
-    severity: vuln.severity,
-    discovered_by: Array.from(vuln.discovered_by)
-  }));
+  return vulnerabilities;
 };
 
 const assessVulnerabilitySeverity = (vulnerability: string): string => {
@@ -455,16 +364,18 @@ const calculateComprehensiveMetrics = (
   });
   
   return {
-    persona_fidelity_scores: personaFidelityScores,
+    persona_fidelity_index: Object.values(personaFidelityScores).reduce((a, b) => a + b, 0) / Object.keys(personaFidelityScores).length,
     behavioral_diversity_index: actionEntropy,
+    vulnerability_discovery_rate: vulnerabilities.length,
+    persona_fidelity_scores: personaFidelityScores,
+    action_entropy: actionEntropy,
+    action_matrix: actionMatrix,
     vulnerability_detection_rate: {
       discovery_scores: discoveryScores,
       unique_vulnerabilities: vulnerabilities.length,
       critical_count: vulnerabilities.filter(v => v.severity === 'critical').length,
       vulnerabilities_detail: vulnerabilities
-    },
-    action_matrix: actionMatrix,
-    action_entropy: actionEntropy
+    }
   };
 };
 
@@ -1362,6 +1273,7 @@ const SciFiPersonaLab = () => {
     description: '',
     system_context: {
       system_type: '',
+      user_goals: [],
       environmental_factors: [],
       security_requirements: [],
       constraints: []
@@ -2042,6 +1954,7 @@ const SciFiPersonaLab = () => {
                         description: template.system_description,
                         system_context: {
                           system_type: template.tech_stack?.stack?.[0] || 'web-application',
+                          user_goals: [],
                           environmental_factors: template.tech_stack?.potential_threats || [],
                           security_requirements: template.tech_stack?.security_features || [],
                           constraints: []
