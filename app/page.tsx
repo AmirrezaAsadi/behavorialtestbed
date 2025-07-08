@@ -152,25 +152,39 @@ const calculateActionEntropy = (actionMatrix: PersonaActionMatrix): number => {
   // "BDI(scenario) = -∑(j=1 to m) p(aj)log p(aj)"
   // where p(aj) is the proportion of personas that perform action j
   
-  // Get all unique actions across all personas
-  const allActions = new Set<string>();
+  // Get all personas and actions
   const allPersonas = Object.keys(actionMatrix);
   
+  // If we have fewer than 2 personas, entropy is meaningless
+  if (allPersonas.length < 2) {
+    console.log("Not enough personas for entropy calculation");
+    return 0;
+  }
+  
+  // Get all unique actions
+  const allActions = new Set<string>();
   Object.values(actionMatrix).forEach(personaActions => {
     Object.keys(personaActions).forEach(action => {
       allActions.add(action);
     });
   });
   
-  if (allActions.size === 0 || allPersonas.length === 0) {
+  // If we have no actions, entropy is zero
+  if (allActions.size === 0) {
+    console.log("No actions recorded for entropy calculation");
     return 0;
   }
   
   // Calculate entropy over the proportion of personas performing each action
   let entropy = 0;
   const totalPersonas = allPersonas.length;
+  let actionsUsedForCalculation = 0;
   
-  allActions.forEach(action => {
+  // Convert the actions to an array for logging
+  const actionArray = Array.from(allActions);
+  console.log(`Found ${actionArray.length} unique actions across ${totalPersonas} personas`);
+  
+  actionArray.forEach(action => {
     // Count how many personas performed this action (at least once)
     const personasPerformingAction = allPersonas.filter(personaId => {
       return (actionMatrix[personaId][action] || 0) > 0;
@@ -182,9 +196,12 @@ const calculateActionEntropy = (actionMatrix: PersonaActionMatrix): number => {
     // Add to entropy: -p(aj) * log2(p(aj))
     if (proportion > 0) {
       entropy -= proportion * Math.log2(proportion);
+      actionsUsedForCalculation++;
+      console.log(`Action: ${action}, Personas: ${personasPerformingAction}/${totalPersonas}, p(aj): ${proportion.toFixed(2)}, Entropy contribution: ${(-proportion * Math.log2(proportion)).toFixed(4)}`);
     }
   });
   
+  console.log(`Total entropy: ${entropy.toFixed(4)} from ${actionsUsedForCalculation} actions`);
   return entropy;
 };
 
@@ -199,16 +216,29 @@ const calculateVulnerabilityDiscoveryScore = (
 const buildActionMatrix = (outputs: SimulationOutput[]): PersonaActionMatrix => {
   const matrix: PersonaActionMatrix = {};
   
-  outputs.forEach(output => {
+  // Filter out outputs with no action or persona_id
+  const validOutputs = outputs.filter(output => 
+    output && output.persona_id && output.action && !output.error
+  );
+  
+  // If no valid outputs, return empty matrix
+  if (validOutputs.length === 0) {
+    return matrix;
+  }
+  
+  // Group outputs by persona and action
+  validOutputs.forEach(output => {
     if (!matrix[output.persona_id]) {
       matrix[output.persona_id] = {};
     }
     
-    // Create a unique action key that includes step and action details
-    const stepKey = `step_${output.step || 1}`;
-    const actionKey = `${stepKey}_${output.action.replace(/\s+/g, '_').toLowerCase()}`;
+    // Normalize the action name to ensure consistency across personas
+    const normalizedAction = output.action.trim().toLowerCase();
     
-    matrix[output.persona_id][actionKey] = (matrix[output.persona_id][actionKey] || 0) + 1;
+    // Instead of using step-specific keys, use just the action
+    // This aligns better with the paper's approach of counting how many personas perform each action
+    matrix[output.persona_id][normalizedAction] = 
+      (matrix[output.persona_id][normalizedAction] || 0) + 1;
   });
   
   return matrix;
@@ -1477,6 +1507,28 @@ const SciFiPersonaLab = () => {
   const SystemStats = () => {
     const canCalculateEntropy = selectedPersonas.length > 1;
     const hasValidMetrics = evaluationMetrics && simulationCompleted;
+
+    // Calculate our own behavioral diversity if it's missing or zero
+    useEffect(() => {
+      if (hasValidMetrics && simulationOutputs.length > 0 && selectedPersonas.length > 1) {
+        // Only recalculate if existing entropy is zero or undefined
+        if (!evaluationMetrics.action_entropy || evaluationMetrics.action_entropy === 0) {
+          // Re-run the matrix calculation with detailed logs
+          const actionMatrix = buildActionMatrix(simulationOutputs);
+          const actionEntropy = calculateActionEntropy(actionMatrix);
+          console.log("Recalculated action entropy:", actionEntropy);
+          
+          if (actionEntropy > 0) {
+            // Update metrics with our calculated value
+            setEvaluationMetrics({
+              ...evaluationMetrics,
+              action_entropy: actionEntropy,
+              behavioral_diversity_index: actionEntropy
+            });
+          }
+        }
+      }
+    }, [hasValidMetrics, simulationOutputs, selectedPersonas, evaluationMetrics]);
     
     return (
       <HolographicPanel>          <div className="text-cyan-700 font-mono font-bold text-sm mb-4">EVALUATION FRAMEWORK</div>
@@ -1495,7 +1547,7 @@ const SciFiPersonaLab = () => {
           
           <div className="text-center">
             <div className="text-2xl font-mono font-bold text-purple-400">
-              {hasValidMetrics && evaluationMetrics.action_entropy !== undefined ? 
+              {hasValidMetrics && evaluationMetrics.action_entropy !== undefined && evaluationMetrics.action_entropy > 0 ? 
                 evaluationMetrics.action_entropy.toFixed(2)
                 : canCalculateEntropy ? '0.00' : 'N/A'
               }
@@ -1556,8 +1608,55 @@ const SciFiPersonaLab = () => {
                 <div className="text-gray-500 font-mono text-xs mb-2">
                   Entropy calculation: -Σ p(aj)log p(aj) = {evaluationMetrics.action_entropy.toFixed(2)}
                 </div>
+                
+                {/* Improved action matrix display with counts of personas per action */}
+                <div className="text-cyan-400 font-mono text-xs mb-2">PERSONAS BY ACTION:</div>
+                <div className="max-h-32 overflow-y-auto space-y-1 bg-gray-900/30 p-2 rounded">
+                  {(() => {
+                    // Get all unique actions
+                    const allActions = new Set<string>();
+                    Object.values(evaluationMetrics.action_matrix).forEach(personaActions => {
+                      Object.keys(personaActions).forEach(action => allActions.add(action));
+                    });
+                    
+                    // For each action, count personas that performed it
+                    return Array.from(allActions).map(action => {
+                      const personasWithAction = Object.entries(evaluationMetrics.action_matrix)
+                        .filter(([_, actions]) => actions[action] && actions[action] > 0)
+                        .map(([personaId, _]) => {
+                          const persona = selectedPersonas.find(p => p.id === personaId);
+                          return persona?.name || personaId;
+                        });
+                      
+                      const personaCount = personasWithAction.length;
+                      const totalPersonas = selectedPersonas.length;
+                      const proportion = personaCount / totalPersonas;
+                      
+                      return (
+                        <div key={action} className="flex flex-wrap items-center gap-2 mb-1">
+                          <div className="text-xs font-mono bg-gray-800 px-2 py-1 rounded">
+                            <span className="text-yellow-400">{action}</span>
+                            <span className="text-gray-400 ml-2">
+                              {personaCount}/{totalPersonas} personas ({(proportion * 100).toFixed(0)}%)
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {personasWithAction.map(name => (
+                              <span key={name} className="text-xs bg-cyan-500/20 text-cyan-300 px-1 rounded">
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+                
+                {/* Original persona-action matrix */}
+                <div className="text-cyan-400 font-mono text-xs mt-3 mb-2">ACTIONS BY PERSONA:</div>
                 <div className="max-h-32 overflow-y-auto space-y-1">
-                  {Object.entries(evaluationMetrics.action_matrix).slice(0, 3).map(([personaId, actions]) => {
+                  {Object.entries(evaluationMetrics.action_matrix).map(([personaId, actions]) => {
                     const persona = selectedPersonas.find(p => p.id === personaId);
                     return (
                       <div key={personaId} className="text-xs">
@@ -1565,7 +1664,7 @@ const SciFiPersonaLab = () => {
                         <div className="ml-2 grid grid-cols-2 gap-1">
                           {Object.entries(actions).map(([action, count]) => (
                             <span key={action} className="text-gray-400 font-mono">
-                              {action.replace('_', ' ')}: {count}
+                              {action}: {count}
                             </span>
                           ))}
                         </div>
