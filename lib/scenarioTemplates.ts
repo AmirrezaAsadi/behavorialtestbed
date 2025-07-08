@@ -6,7 +6,6 @@ export interface UIElement {
   element_id: string;
   position: string;
   interaction_type: 'clickable' | 'hoverable' | 'scrollable' | 'input';
-  security_level: 'low' | 'medium' | 'high' | 'critical';
   description: string;
 }
 
@@ -34,21 +33,18 @@ export const EMAIL_SCENARIO: ScenarioTemplate = {
       element_id: "inbox_list",
       position: "left-panel", 
       interaction_type: "clickable",
-      security_level: "low",
       description: "List of received emails with sender, subject, time"
     },
     {
       element_id: "message_body",
       position: "main-area",
       interaction_type: "scrollable", 
-      security_level: "high",
       description: "Email content with links and attachments"
     },
     {
       element_id: "action_buttons",
       position: "toolbar",
       interaction_type: "clickable",
-      security_level: "medium", 
       description: "Reply, Forward, Delete, Mark Spam buttons"
     }
   ],
@@ -121,28 +117,24 @@ export const SOCIAL_MEDIA_SCENARIO: ScenarioTemplate = {
       element_id: "news_feed",
       position: "main-area",
       interaction_type: "scrollable",
-      security_level: "medium",
       description: "Stream of posts, images, and videos from connections"
     },
     {
       element_id: "post_actions",
       position: "bottom-post",
       interaction_type: "clickable",
-      security_level: "medium",
       description: "Like, Share, Comment, Save buttons"
     },
     {
       element_id: "external_links",
       position: "embedded",
       interaction_type: "clickable",
-      security_level: "high",
       description: "Links to external websites within posts"
     },
     {
       element_id: "privacy_settings",
       position: "dropdown-menu",
       interaction_type: "clickable",
-      security_level: "critical",
       description: "Post visibility and privacy controls"
     }
   ],
@@ -232,28 +224,24 @@ export const FILE_SHARING_SCENARIO: ScenarioTemplate = {
       element_id: "file_browser",
       position: "main-area",
       interaction_type: "clickable",
-      security_level: "medium",
       description: "Directory structure with files and folders"
     },
     {
       element_id: "download_button",
       position: "toolbar",
       interaction_type: "clickable",
-      security_level: "high",
       description: "File download action button"
     },
     {
       element_id: "sharing_dialog",
       position: "modal",
       interaction_type: "input",
-      security_level: "critical",
       description: "Sharing permissions and link generation"
     },
     {
       element_id: "security_scanner",
       position: "side-panel",
       interaction_type: "clickable",
-      security_level: "high",
       description: "File security scan results and warnings"
     }
   ],

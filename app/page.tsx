@@ -1224,9 +1224,7 @@ const SciFiPersonaLab = () => {
   const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
   const [simulationOutputs, setSimulationOutputs] = useState<SimulationOutput[]>([]);
   const [evaluationMetrics, setEvaluationMetrics] = useState<EvaluationMetrics | null>(null);
-  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
-  const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
-  const [gomsFlow, setGomsFlow] = useState<any>(null); // Add GOMS flow state
+  const [gomsFlow, setGomsFlow] = useState<any>(null); // GOMS flow state
   const matrixRef = useRef<HTMLCanvasElement>(null);
 
   // Matrix background animation
@@ -1364,18 +1362,16 @@ const SciFiPersonaLab = () => {
     description: '',
     system_context: {
       system_type: '',
-
       environmental_factors: [],
       security_requirements: [],
       constraints: []
     },
-    workflow_steps: [],
-    tasks: [],
+    workflow_steps: [], // Only for API compatibility - will be generated from GOMS
     success_criteria: [],
     security_elements: []
   });
 
-  // Enhanced simulation functions with proper evaluation framework
+  // Enhanced simulation functions with GOMS-only approach
   const runSimulation = async () => {
     if (selectedPersonas.length === 0) {
       alert('Please select personas first');
@@ -1387,24 +1383,22 @@ const SciFiPersonaLab = () => {
       return;
     }
 
-    // Ensure workflow steps exist - prioritize GOMS conversion
-    let scenarioToUse = activeScenario;
-    if (gomsFlow?.operators?.length > 0) {
-      // Always use GOMS operators if available
-      try {
-        const workflowSteps = convertGOMSToWorkflow(gomsFlow);
-        scenarioToUse = {
-          ...activeScenario,
-          workflow_steps: workflowSteps
-        };
-      } catch (error) {
-        console.error('Error converting GOMS operators to workflow steps:', error);
-        // Fall back to existing workflow steps
-      }
+    if (!gomsFlow?.operators?.length) {
+      alert('No GOMS operators defined - please use the GOMS Builder to create operators');
+      return;
     }
 
-    if (scenarioToUse.workflow_steps.length === 0) {
-      alert('No workflow steps available - please create GOMS operators or manual steps');
+    // Generate workflow steps from GOMS operators for API compatibility
+    let scenarioToUse = activeScenario;
+    try {
+      const workflowSteps = convertGOMSToWorkflow(gomsFlow);
+      scenarioToUse = {
+        ...activeScenario,
+        workflow_steps: workflowSteps
+      };
+    } catch (error) {
+      console.error('Error converting GOMS operators to workflow steps:', error);
+      alert('Error processing GOMS operators');
       return;
     }
 
@@ -1600,19 +1594,12 @@ const SciFiPersonaLab = () => {
     </HolographicPanel>
   );
 
-  // Enhanced simulation control with proper validation and state management
+  // Enhanced simulation control with GOMS-only validation
   const SimulationControl = () => {
     const canCalculateEntropy = selectedPersonas.length > 1;
     
-    // Updated validation - check for GOMS operators first, then workflow steps
-    const hasScenario = activeScenario && (
-      (gomsFlow && gomsFlow.operators && gomsFlow.operators.length > 0) || 
-      (activeScenario.workflow_steps.length > 0)
-    );
-    
-    const scenarioSource = activeScenario ? 
-      (gomsFlow && gomsFlow.operators && gomsFlow.operators.length > 0 ? 'GOMS operators' : 'manual steps') : 
-      'none';
+    // GOMS-only validation
+    const hasScenario = activeScenario && gomsFlow && gomsFlow.operators && gomsFlow.operators.length > 0;
     
     return (
       <HolographicPanel glow className="space-y-4">
@@ -1628,9 +1615,13 @@ const SciFiPersonaLab = () => {
           
           <div className="text-gray-400 font-mono text-xs">
             ACTIVE SCENARIO: {activeScenario ? 
-              `${activeScenario.title} (${scenarioSource})` : 
+              `${activeScenario.title} (GOMS)` : 
               'None'
             }
+          </div>
+          
+          <div className="text-gray-400 font-mono text-xs">
+            GOMS OPERATORS: {gomsFlow?.operators?.length || 0}
           </div>
           
           {selectedPersonas.length === 0 && (
@@ -1641,7 +1632,7 @@ const SciFiPersonaLab = () => {
           
           {!hasScenario && (
             <div className="text-red-400 font-mono text-xs border border-red-500/30 rounded p-2 bg-red-500/10">
-              ⚠ NO SCENARIO DEFINED - Use GOMS Builder for best results
+              ⚠ NO GOMS OPERATORS DEFINED - Use GOMS Builder to create operators
             </div>
           )}
           
@@ -2056,9 +2047,8 @@ const SciFiPersonaLab = () => {
                           constraints: []
                         },
                         workflow_steps: workflowSteps,
-                        tasks: [],
                         success_criteria: [],
-                        security_elements: template.ui_elements.map(el => `${el.element_id} (${el.position}, ${el.security_level})`)
+                        security_elements: template.ui_elements.map(el => `${el.element_id} (${el.position})`)
                       });
                       
                       setGomsFlow(gomsFlow);
@@ -2135,7 +2125,7 @@ const SciFiPersonaLab = () => {
                       
                       <div className="text-gray-400 font-mono text-xs mt-1">{scenario.description}</div>
                       <div className="text-yellow-400 font-mono text-xs mt-2">
-                        {scenario.workflow_steps.length} STEPS | {scenario.tasks.length} TASKS | {scenario.system_context.system_type.toUpperCase()}
+                        {scenario.workflow_steps.length} STEPS | {scenario.system_context.system_type.toUpperCase()}
                       </div>
                       
                       {activeScenario?.id === scenario.id && (
