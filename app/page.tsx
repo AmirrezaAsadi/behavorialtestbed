@@ -1520,10 +1520,12 @@ const SciFiPersonaLab = () => {
           
           if (actionEntropy > 0) {
             // Update metrics with our calculated value
+            const actionMatrix = buildActionMatrix(simulationOutputs);
             setEvaluationMetrics({
               ...evaluationMetrics,
               action_entropy: actionEntropy,
-              behavioral_diversity_index: actionEntropy
+              behavioral_diversity_index: actionEntropy,
+              action_matrix: actionMatrix || {}
             });
           }
         }
