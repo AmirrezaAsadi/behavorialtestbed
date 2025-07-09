@@ -1858,7 +1858,7 @@ const SciFiPersonaLab = () => {
             Persona Crash Lab
           </h1>
           <div className="text-sm font-mono text-gray-600">
-            LLM-DRIVEN BEHAVIORAL TESTBED • SECURITY SIMULATION MATRIX
+            LLM-DRIVEN BEHAVIORAL TESTBED • Behavior Simulation Matrix
           </div>
         </div>
 
