@@ -1717,7 +1717,8 @@ const SciFiPersonaLab = () => {
     }, [hasValidMetrics, simulationOutputs, selectedPersonas, evaluationMetrics]);
     
     return (
-      <HolographicPanel>          <div className="text-cyan-700 font-mono font-bold text-sm mb-4">EVALUATION FRAMEWORK</div>
+      <HolographicPanel>
+        <div className="text-cyan-700 font-mono font-bold text-sm mb-4">EVALUATION FRAMEWORK</div>
         
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
@@ -2530,7 +2531,7 @@ const SciFiPersonaLab = () => {
 
                         {/* Final Action taken */}
                         <div className="bg-green-500/10 border border-green-500/30 rounded p-2 mb-2">
-                          <div className="text-green-400 font-mono text-xs font-bold mb-1>FINAL ACTION:</div>
+                          <div className="text-green-400 font-mono text-xs font-bold mb-1">FINAL ACTION:</div>
                           <div className="text-gray-300 font-mono text-xs">
                             {output.action}
                           </div>
