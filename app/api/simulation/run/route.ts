@@ -1,5 +1,256 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Multi-agent interaction types (local to API)
+interface PersonaConnection {
+  target_persona_id: string;
+  relationship_type: 'unknown' | 'colleague' | 'friend' | 'adversary' | 'subordinate' | 'superior' | 'family';
+  trust_level: number;
+  influence_weight: number;
+  communication_frequency: 'never' | 'rare' | 'occasional' | 'frequent' | 'constant';
+  discovered_through?: string;
+  interaction_history: PersonaInteraction[];
+}
+
+interface PersonaInteraction {
+  id: string;
+  timestamp: string;
+  initiator_id: string;
+  target_id: string;
+  interaction_type: 'communication' | 'observation' | 'influence_attempt' | 'collaboration' | 'conflict';
+  content: string;
+  success: boolean;
+  trust_change?: number;
+  influence_applied?: number;
+  context: string;
+  outcome: string;
+}
+
+interface GroupDynamics {
+  group_id: string;
+  member_ids: string[];
+  group_type: 'informal' | 'formal' | 'adversarial' | 'collaborative';
+  cohesion_level: number;
+  influence_network: Record<string, Record<string, number>>;
+  communication_patterns: {
+    dominant_speakers: string[];
+    quiet_members: string[];
+    information_flow: string;
+  };
+  emergent_behaviors: string[];
+}
+
+// Multi-agent simulation state
+class MultiAgentSimulation {
+  private personas: Map<string, Persona> = new Map();
+  private connections: Map<string, PersonaConnection[]> = new Map();
+  private groups: GroupDynamics[] = [];
+  private interactionHistory: PersonaInteraction[] = [];
+  
+  constructor(personas: Persona[]) {
+    personas.forEach(persona => {
+      this.personas.set(persona.id, persona);
+      this.connections.set(persona.id, persona.connections || []);
+    });
+  }
+  
+  // Discover potential connections between personas based on their characteristics
+  discoverConnections(persona1Id: string, persona2Id: string): PersonaConnection | null {
+    const persona1 = this.personas.get(persona1Id);
+    const persona2 = this.personas.get(persona2Id);
+    
+    if (!persona1 || !persona2 || persona1Id === persona2Id) return null;
+    
+    // Check if connection already exists
+    const existing = this.connections.get(persona1Id)?.find(c => c.target_persona_id === persona2Id);
+    if (existing) return existing;
+    
+    // Calculate connection probability based on persona characteristics
+    let connectionProbability = 0;
+    let relationshipType: PersonaConnection['relationship_type'] = 'unknown';
+    let trustLevel = 3; // Default neutral trust
+    
+    // Same organization type increases connection probability
+    if (persona1.type === persona2.type) {
+      connectionProbability += 0.4;
+      relationshipType = 'colleague';
+      trustLevel = 4;
+    }
+    
+    // Similar backgrounds
+    if (persona1.demographics.background === persona2.demographics.background) {
+      connectionProbability += 0.3;
+    }
+    
+    // Same location
+    if (persona1.demographics.location === persona2.demographics.location) {
+      connectionProbability += 0.2;
+    }
+    
+    // Threat actors vs security practitioners (adversarial)
+    if ((persona1.type === 'THREAT_ACTOR' && persona2.type === 'SECURITY_PRACTITIONER') ||
+        (persona1.type === 'SECURITY_PRACTITIONER' && persona2.type === 'THREAT_ACTOR')) {
+      relationshipType = 'adversary';
+      trustLevel = 1;
+      connectionProbability += 0.1; // They might know of each other
+    }
+    
+    // Create connection if probability threshold is met
+    if (connectionProbability > 0.3 || Math.random() < 0.1) { // 10% chance for random connections
+      const connection: PersonaConnection = {
+        target_persona_id: persona2Id,
+        relationship_type: relationshipType,
+        trust_level: trustLevel,
+        influence_weight: this.calculateInfluenceWeight(persona1, persona2),
+        communication_frequency: this.determineCommunicationFrequency(relationshipType),
+        discovered_through: 'simulation_discovery',
+        interaction_history: []
+      };
+      
+      // Add bidirectional connection
+      this.connections.get(persona1Id)?.push(connection);
+      const reverseConnection = { ...connection, target_persona_id: persona1Id };
+      this.connections.get(persona2Id)?.push(reverseConnection);
+      
+      return connection;
+    }
+    
+    return null;
+  }
+  
+  private calculateInfluenceWeight(persona1: Persona, persona2: Persona): number {
+    let influence = 0.5; // Base influence
+    
+    // Higher technical expertise increases influence in technical contexts
+    influence += (persona1.skills.technical_expertise - persona2.skills.technical_expertise) * 0.1;
+    
+    // Social traits (if available)
+    if (persona1.social_traits && persona2.social_traits) {
+      influence += (persona1.social_traits.influence_power - persona2.social_traits.influence_susceptibility) * 0.1;
+    }
+    
+    return Math.max(0, Math.min(1, influence));
+  }
+  
+  private determineCommunicationFrequency(relationshipType: PersonaConnection['relationship_type']): PersonaConnection['communication_frequency'] {
+    switch (relationshipType) {
+      case 'colleague': return 'frequent';
+      case 'friend': return 'frequent';
+      case 'family': return 'constant';
+      case 'adversary': return 'rare';
+      case 'superior': return 'occasional';
+      case 'subordinate': return 'occasional';
+      default: return 'rare';
+    }
+  }
+  
+  // Simulate interaction between two personas
+  async simulateInteraction(initiatorId: string, targetId: string, context: string, aiClient: any): Promise<PersonaInteraction | null> {
+    const initiator = this.personas.get(initiatorId);
+    const target = this.personas.get(targetId);
+    
+    if (!initiator || !target) return null;
+    
+    const connection = this.connections.get(initiatorId)?.find(c => c.target_persona_id === targetId);
+    
+    // Generate interaction using AI
+    const interactionPrompt = `
+You are simulating an interaction between two personas in a cybersecurity scenario.
+
+INITIATOR: ${initiator.name} (${initiator.type})
+- Technical Expertise: ${initiator.skills.technical_expertise}/5
+- Trust Level towards target: ${connection?.trust_level || 3}/5
+- Relationship: ${connection?.relationship_type || 'unknown'}
+
+TARGET: ${target.name} (${target.type})
+- Technical Expertise: ${target.skills.technical_expertise}/5
+- Security Awareness: ${target.skills.security_awareness}/5
+
+CONTEXT: ${context}
+
+Simulate what happens when ${initiator.name} attempts to interact with ${target.name} in this context. Consider:
+- Their relationship type and trust level
+- Their different expertise levels
+- Potential for social engineering, collaboration, or conflict
+- Realistic human behavior and responses
+
+Respond with JSON:
+{
+  "interaction_type": "communication|observation|influence_attempt|collaboration|conflict",
+  "content": "what the initiator says/does",
+  "target_response": "how the target responds",
+  "success": true/false,
+  "trust_change": -2 to +2,
+  "influence_applied": 0 to 1,
+  "outcome": "description of the result"
+}
+    `;
+    
+    try {
+      const response = await aiClient.chat.completions.create({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: interactionPrompt }],
+        temperature: 0.8,
+        max_tokens: 500
+      });
+      
+      const result = JSON.parse(response.choices[0].message.content);
+      
+      const interaction: PersonaInteraction = {
+        id: `interaction_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        initiator_id: initiatorId,
+        target_id: targetId,
+        interaction_type: result.interaction_type,
+        content: result.content,
+        success: result.success,
+        trust_change: result.trust_change || 0,
+        influence_applied: result.influence_applied || 0,
+        context: context,
+        outcome: result.outcome
+      };
+      
+      // Update trust levels
+      if (connection && result.trust_change) {
+        connection.trust_level = Math.max(1, Math.min(5, connection.trust_level + result.trust_change));
+      }
+      
+      // Store interaction
+      this.interactionHistory.push(interaction);
+      connection?.interaction_history.push(interaction);
+      
+      return interaction;
+    } catch (error) {
+      console.error('Error simulating interaction:', error);
+      return null;
+    }
+  }
+  
+  // Get personas that might interact in current context
+  getPotentialInteractions(personaId: string, context: string): string[] {
+    const connections = this.connections.get(personaId) || [];
+    return connections
+      .filter(c => c.communication_frequency !== 'never')
+      .map(c => c.target_persona_id);
+  }
+  
+  // Get current state for metrics
+  getMetrics(): any {
+    const totalConnections = Array.from(this.connections.values()).reduce((sum, conns) => sum + conns.length, 0);
+    const totalPossibleConnections = this.personas.size * (this.personas.size - 1);
+    
+    return {
+      total_interactions: this.interactionHistory.length,
+      connection_discovery_rate: totalConnections / totalPossibleConnections,
+      trust_network_density: totalConnections / totalPossibleConnections,
+      group_formation_events: this.groups.length,
+      social_engineering_attempts: this.interactionHistory.filter(i => 
+        i.interaction_type === 'influence_attempt' && 
+        i.outcome.includes('social engineering')
+      ).length
+    };
+  }
+}
+
 // Initialize the AI client - you can switch between different providers
 let aiClient: any = null;
 
@@ -56,6 +307,16 @@ interface Persona {
   };
   behavioral_patterns: string[];
   motivation: string;
+  position?: { x: number; y: number; z: number };
+  // Multi-agent properties
+  social_traits?: {
+    communication_style: 'direct' | 'indirect' | 'persuasive' | 'collaborative' | 'aggressive';
+    influence_susceptibility: number;
+    influence_power: number;
+    group_preference: 'leader' | 'follower' | 'independent' | 'observer';
+    trust_default: number;
+  };
+  connections?: PersonaConnection[];
 }
 
 interface Scenario {
@@ -80,6 +341,15 @@ interface SimulationConfig {
   action_exploration_mode?: boolean;
   threat_discovery_focus?: boolean;
   behavioral_diversity_weight?: number;
+  multi_agent?: {
+    enable_persona_interactions: boolean;
+    interaction_discovery_rate: number;
+    influence_propagation_enabled: boolean;
+    group_formation_enabled: boolean;
+    social_engineering_scenarios: boolean;
+    max_interaction_depth: number;
+    interaction_types: ('communication' | 'observation' | 'influence' | 'collaboration')[];
+  };
 }
 
 interface SimulationRequest {
@@ -603,6 +873,15 @@ export async function POST(request: NextRequest) {
 
     const activeScenario = scenario;
     const simulationOutputs = [];
+    
+    // Initialize multi-agent simulation if enabled
+    let multiAgentSim: MultiAgentSimulation | null = null;
+    const multiAgentConfig = config?.multi_agent;
+    
+    if (multiAgentConfig?.enable_persona_interactions && personas.length > 1) {
+      multiAgentSim = new MultiAgentSimulation(personas);
+      console.log('Multi-agent simulation enabled with', personas.length, 'personas');
+    }
 
     // Run simulation for each persona
     for (const persona of personas) {
@@ -611,7 +890,58 @@ export async function POST(request: NextRequest) {
       // Process each workflow step
       for (const step of activeScenario.workflow_steps) {
         try {
-          const prompt = generatePersonaPrompt(persona, step, config);
+          // Multi-agent: Discover connections before processing this step
+          let discoveredConnections: PersonaConnection[] = [];
+          let stepInteractions: PersonaInteraction[] = [];
+          
+          if (multiAgentSim && Math.random() < (multiAgentConfig?.interaction_discovery_rate || 0.3)) {
+            // Try to discover connections with other personas
+            for (const otherPersona of personas) {
+              if (otherPersona.id !== persona.id) {
+                const connection = multiAgentSim.discoverConnections(persona.id, otherPersona.id);
+                if (connection) {
+                  discoveredConnections.push(connection);
+                  console.log(`Discovered connection: ${persona.name} -> ${otherPersona.name} (${connection.relationship_type})`);
+                }
+              }
+            }
+          }
+          
+          // Multi-agent: Simulate interactions if connections exist
+          if (multiAgentSim && multiAgentConfig?.enable_persona_interactions) {
+            const potentialTargets = multiAgentSim.getPotentialInteractions(persona.id, step.title);
+            
+            for (const targetId of potentialTargets.slice(0, 2)) { // Limit to 2 interactions per step
+              const interaction = await multiAgentSim.simulateInteraction(
+                persona.id, 
+                targetId, 
+                `During step: ${step.title} - ${step.interface_description}`,
+                client
+              );
+              
+              if (interaction) {
+                stepInteractions.push(interaction);
+                console.log(`Interaction: ${persona.name} -> ${personas.find(p => p.id === targetId)?.name}: ${interaction.outcome}`);
+              }
+            }
+          }
+          
+          // Create enhanced prompt that includes multi-agent context
+          let prompt = generatePersonaPrompt(persona, step, config);
+          
+          // Add multi-agent context to prompt if interactions occurred
+          if (stepInteractions.length > 0 || discoveredConnections.length > 0) {
+            prompt += `
+
+SOCIAL CONTEXT:
+${discoveredConnections.length > 0 ? `You have discovered these connections to other people in the system:
+${discoveredConnections.map(c => `- ${personas.find(p => p.id === c.target_persona_id)?.name}: ${c.relationship_type} (trust level: ${c.trust_level}/5)`).join('\n')}` : ''}
+
+${stepInteractions.length > 0 ? `Recent interactions with others:
+${stepInteractions.map(i => `- ${i.interaction_type} with ${personas.find(p => p.id === i.target_id)?.name}: ${i.outcome}`).join('\n')}` : ''}
+
+Consider how these relationships and interactions might influence your decision in this step.`;
+          }
           
           console.log(`Running simulation for ${persona.name} - Step ${stepCounter}`);
           
@@ -623,7 +953,7 @@ export async function POST(request: NextRequest) {
             messages: [
               {
                 role: "system",
-                content: "You are a behavioral simulation system. Respond only with valid JSON matching the requested format. Stay in character as the specified persona. Be realistic and consider the persona's background when making decisions."
+                content: "You are a behavioral simulation system. Respond only with valid JSON matching the requested format. Stay in character as the specified persona. Be realistic and consider the persona's background when making decisions. Consider social context and relationships with others."
               },
               {
                 role: "user",
@@ -693,7 +1023,16 @@ export async function POST(request: NextRequest) {
             potential_vulnerabilities: Array.isArray(parsedResponse.potential_vulnerabilities) ? parsedResponse.potential_vulnerabilities : [],
             is_free_form_action: !isActionPredefined,
             action_creativity_score: isActionPredefined ? 1 : Math.min(5, Math.max(1, Math.floor(Math.random() * 3) + 3)), // Random score 3-5 for free-form actions
-            persona_skills: persona.skills // Store for fidelity calculation
+            persona_skills: persona.skills, // Store for fidelity calculation
+            // Multi-agent interaction data
+            interactions_initiated: stepInteractions.filter(i => i.initiator_id === persona.id),
+            interactions_received: stepInteractions.filter(i => i.target_id === persona.id),
+            influence_applied: stepInteractions
+              .filter(i => i.initiator_id === persona.id)
+              .reduce((sum, i) => sum + (i.influence_applied || 0), 0),
+            influence_received: stepInteractions
+              .filter(i => i.target_id === persona.id)
+              .reduce((sum, i) => sum + (i.influence_applied || 0), 0)
           });
 
           stepCounter++;
@@ -743,19 +1082,30 @@ export async function POST(request: NextRequest) {
 
     // Calculate comprehensive evaluation metrics using LLM
     const evaluationMetrics = await calculateComprehensiveMetrics(personas, simulationOutputs, activeScenario, client);
+    
+    // Add multi-agent metrics if multi-agent simulation was used
+    let multiAgentMetrics = {};
+    if (multiAgentSim) {
+      multiAgentMetrics = multiAgentSim.getMetrics();
+      console.log('Multi-agent metrics calculated:', multiAgentMetrics);
+    }
 
     console.log('LLM evaluation completed');
 
     return NextResponse.json({
       success: true,
       outputs: simulationOutputs,
-      metrics: evaluationMetrics,
+      metrics: {
+        ...evaluationMetrics,
+        ...multiAgentMetrics
+      },
       scenario_used: activeScenario.title,
       ai_model: process.env.XAI_API_KEY ? "grok-3" : "gpt-3.5-turbo",
       evaluation_framework: {
         persona_fidelity_scores: evaluationMetrics.persona_fidelity_scores,
         behavioral_diversity_index: evaluationMetrics.behavioral_diversity_index,
-        vulnerability_detection_rate: evaluationMetrics.vulnerability_detection_rate
+        vulnerability_detection_rate: evaluationMetrics.vulnerability_detection_rate,
+        multi_agent_metrics: multiAgentMetrics
       }
     });
 

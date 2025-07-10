@@ -994,7 +994,16 @@ const SciFiPersonaLab = () => {
     allow_free_form_actions: true,
     action_exploration_mode: true,
     threat_discovery_focus: true,
-    behavioral_diversity_weight: 0.8
+    behavioral_diversity_weight: 0.8,
+    multi_agent: {
+      enable_persona_interactions: false,
+      interaction_discovery_rate: 0.3,
+      influence_propagation_enabled: true,
+      group_formation_enabled: false,
+      social_engineering_scenarios: true,
+      max_interaction_depth: 2,
+      interaction_types: ['communication', 'observation', 'influence', 'collaboration'] as const
+    }
   });
   const matrixRef = useRef<HTMLCanvasElement>(null);
 
@@ -1072,7 +1081,14 @@ const SciFiPersonaLab = () => {
         'Plans long-term campaigns for maximum impact'
       ],
       motivation: 'Believes hacking serves greater good against corrupt institutions',
-      position: { x: 20, y: 30, z: 15 }
+      position: { x: 20, y: 30, z: 15 },
+      social_traits: {
+        communication_style: 'persuasive',
+        influence_susceptibility: 2,
+        influence_power: 4,
+        group_preference: 'leader',
+        trust_default: 2
+      }
     },
     {
       id: 'alex_chen',
@@ -1098,7 +1114,14 @@ const SciFiPersonaLab = () => {
         'Maintains high situational awareness'
       ],
       motivation: 'Protect organizational assets and user data',
-      position: { x: 80, y: 60, z: 25 }
+      position: { x: 80, y: 60, z: 25 },
+      social_traits: {
+        communication_style: 'direct',
+        influence_susceptibility: 3,
+        influence_power: 3,
+        group_preference: 'independent',
+        trust_default: 4
+      }
     },
     {
       id: 'sarah_johnson',
@@ -1124,7 +1147,14 @@ const SciFiPersonaLab = () => {
         'Trusts familiar interfaces'
       ],
       motivation: 'Complete work tasks efficiently',
-      position: { x: 50, y: 45, z: 20 }
+      position: { x: 50, y: 45, z: 20 },
+      social_traits: {
+        communication_style: 'collaborative',
+        influence_susceptibility: 4,
+        influence_power: 2,
+        group_preference: 'follower',
+        trust_default: 3
+      }
     }
   ]);
 
@@ -1457,6 +1487,92 @@ const SciFiPersonaLab = () => {
               </div>
             </div>
           </div>
+          
+          {/* Multi-Agent Interaction Configuration */}
+          {selectedPersonas.length > 1 && (
+            <div className="border border-cyan-500/30 rounded p-3 bg-cyan-500/10 space-y-2">
+              <div className="text-cyan-400 font-mono font-bold text-xs">
+                MULTI-AGENT INTERACTIONS ({selectedPersonas.length} PERSONAS)
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={simulationConfig.multi_agent.enable_persona_interactions}
+                    onChange={(e) => setSimulationConfig(prev => ({
+                      ...prev,
+                      multi_agent: {
+                        ...prev.multi_agent,
+                        enable_persona_interactions: e.target.checked
+                      }
+                    }))}
+                    className="w-3 h-3 accent-cyan-400"
+                  />
+                  <span className="text-cyan-200 font-mono text-xs">Enable Persona-to-Persona Interactions</span>
+                </label>
+                
+                {simulationConfig.multi_agent.enable_persona_interactions && (
+                  <>
+                    <div className="ml-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-cyan-300 font-mono text-xs">Connection Discovery:</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={simulationConfig.multi_agent.interaction_discovery_rate}
+                          onChange={(e) => setSimulationConfig(prev => ({
+                            ...prev,
+                            multi_agent: {
+                              ...prev.multi_agent,
+                              interaction_discovery_rate: parseFloat(e.target.value)
+                            }
+                          }))}
+                          className="w-16 accent-cyan-400"
+                        />
+                        <span className="text-cyan-200 font-mono text-xs">
+                          {Math.round(simulationConfig.multi_agent.interaction_discovery_rate * 100)}%
+                        </span>
+                      </div>
+                      
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={simulationConfig.multi_agent.social_engineering_scenarios}
+                          onChange={(e) => setSimulationConfig(prev => ({
+                            ...prev,
+                            multi_agent: {
+                              ...prev.multi_agent,
+                              social_engineering_scenarios: e.target.checked
+                            }
+                          }))}
+                          className="w-3 h-3 accent-cyan-400"
+                        />
+                        <span className="text-cyan-200 font-mono text-xs">Social Engineering Scenarios</span>
+                      </label>
+                      
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={simulationConfig.multi_agent.influence_propagation_enabled}
+                          onChange={(e) => setSimulationConfig(prev => ({
+                            ...prev,
+                            multi_agent: {
+                              ...prev.multi_agent,
+                              influence_propagation_enabled: e.target.checked
+                            }
+                          }))}
+                          className="w-3 h-3 accent-cyan-400"
+                        />
+                        <span className="text-cyan-200 font-mono text-xs">Influence Propagation</span>
+                      </label>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
           
           {selectedPersonas.length === 0 && (
             <div className="text-red-400 font-mono text-xs border border-red-500/30 rounded p-2 bg-red-500/10">
@@ -2254,6 +2370,61 @@ const SciFiPersonaLab = () => {
                           </div>
                         )}
                         
+                        {/* Multi-Agent Interactions */}
+                        {((output as any).interactions_initiated?.length > 0 || (output as any).interactions_received?.length > 0) && (
+                          <div className="bg-cyan-500/10 border border-cyan-500/30 rounded p-2 mb-3">
+                            <div className="text-cyan-400 font-mono text-xs font-bold mb-1">PERSONA INTERACTIONS</div>
+                            
+                            {(output as any).interactions_initiated?.length > 0 && (
+                              <div className="mb-2">
+                                <div className="text-cyan-300 font-mono text-xs font-bold mb-1">INITIATED:</div>
+                                <div className="space-y-1">
+                                  {(output as any).interactions_initiated.map((interaction: any, i: number) => {
+                                    const targetPersona = selectedPersonas.find(p => p.id === interaction.target_id);
+                                    return (
+                                      <div key={i} className="text-gray-300 font-mono text-xs">
+                                        • {interaction.interaction_type.replace('_', ' ').toUpperCase()} with {targetPersona?.name}
+                                        <div className="text-gray-400 ml-4 text-xs">{interaction.outcome}</div>
+                                        {interaction.trust_change && (
+                                          <div className={`text-xs ml-4 ${interaction.trust_change > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            Trust {interaction.trust_change > 0 ? '+' : ''}{interaction.trust_change}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {(output as any).interactions_received?.length > 0 && (
+                              <div>
+                                <div className="text-cyan-300 font-mono text-xs font-bold mb-1">RECEIVED:</div>
+                                <div className="space-y-1">
+                                  {(output as any).interactions_received.map((interaction: any, i: number) => {
+                                    const initiatorPersona = selectedPersonas.find(p => p.id === interaction.initiator_id);
+                                    return (
+                                      <div key={i} className="text-gray-300 font-mono text-xs">
+                                        • {interaction.interaction_type.replace('_', ' ').toUpperCase()} from {initiatorPersona?.name}
+                                        <div className="text-gray-400 ml-4 text-xs">{interaction.outcome}</div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {((output as any).influence_applied > 0 || (output as any).influence_received > 0) && (
+                              <div className="mt-2 pt-2 border-t border-cyan-500/20">
+                                <div className="text-cyan-300 font-mono text-xs">
+                                  Influence: Applied {((output as any).influence_applied || 0).toFixed(2)}, 
+                                  Received {((output as any).influence_received || 0).toFixed(2)}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
                         {/* Potential Vulnerabilities Identified */}
                         {output.potential_vulnerabilities && output.potential_vulnerabilities.length > 0 && (
                           <div className="bg-orange-500/10 border border-orange-500/30 rounded p-2 mb-3">
@@ -2359,7 +2530,7 @@ const SciFiPersonaLab = () => {
 
                         {/* Final Action taken */}
                         <div className="bg-green-500/10 border border-green-500/30 rounded p-2 mb-2">
-                          <div className="text-green-400 font-mono text-xs font-bold mb-1">FINAL ACTION:</div>
+                          <div className="text-green-400 font-mono text-xs font-bold mb-1>FINAL ACTION:</div>
                           <div className="text-gray-300 font-mono text-xs">
                             {output.action}
                           </div>

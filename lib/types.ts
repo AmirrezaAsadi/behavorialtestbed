@@ -21,6 +21,64 @@ export interface Persona {
   behavioral_patterns: string[];
   motivation: string;
   position?: { x: number; y: number; z: number };
+  // Multi-agent properties
+  social_traits?: {
+    communication_style: 'direct' | 'indirect' | 'persuasive' | 'collaborative' | 'aggressive';
+    influence_susceptibility: number; // 1-5, how easily influenced by others
+    influence_power: number; // 1-5, how much they can influence others
+    group_preference: 'leader' | 'follower' | 'independent' | 'observer';
+    trust_default: number; // 1-5, default trust level for strangers
+  };
+  connections?: PersonaConnection[];
+}
+
+// Multi-agent interaction types
+export interface PersonaConnection {
+  target_persona_id: string;
+  relationship_type: 'unknown' | 'colleague' | 'friend' | 'adversary' | 'subordinate' | 'superior' | 'family';
+  trust_level: number; // 1-5
+  influence_weight: number; // 0-1, how much this persona's actions influence the target
+  communication_frequency: 'never' | 'rare' | 'occasional' | 'frequent' | 'constant';
+  discovered_through?: string; // How this connection was discovered
+  interaction_history: PersonaInteraction[];
+}
+
+export interface PersonaInteraction {
+  id: string;
+  timestamp: string;
+  initiator_id: string;
+  target_id: string;
+  interaction_type: 'communication' | 'observation' | 'influence_attempt' | 'collaboration' | 'conflict';
+  content: string;
+  success: boolean;
+  trust_change?: number; // Change in trust level
+  influence_applied?: number; // Amount of influence applied
+  context: string; // What triggered this interaction
+  outcome: string;
+}
+
+export interface GroupDynamics {
+  group_id: string;
+  member_ids: string[];
+  group_type: 'informal' | 'formal' | 'adversarial' | 'collaborative';
+  cohesion_level: number; // 0-1
+  influence_network: Record<string, Record<string, number>>; // persona_id -> {target_id: influence_weight}
+  communication_patterns: {
+    dominant_speakers: string[];
+    quiet_members: string[];
+    information_flow: string; // description of how info flows
+  };
+  emergent_behaviors: string[];
+}
+
+export interface MultiAgentSimulationConfig {
+  enable_persona_interactions: boolean;
+  interaction_discovery_rate: number; // 0-1, how likely personas discover each other
+  influence_propagation_enabled: boolean;
+  group_formation_enabled: boolean;
+  social_engineering_scenarios: boolean;
+  max_interaction_depth: number; // How many degrees of separation to simulate
+  interaction_types: ('communication' | 'observation' | 'influence' | 'collaboration')[];
 }
 
 export interface WorkflowStep {
@@ -97,6 +155,16 @@ export interface SimulationOutput {
     risk_tolerance: number;
     security_awareness: number;
   }; // LLM-assessed characteristics for PFI calculation
+  // Multi-agent interaction data
+  interactions_initiated?: PersonaInteraction[]; // Interactions this persona started
+  interactions_received?: PersonaInteraction[]; // Interactions this persona received
+  influence_applied?: number; // How much this persona influenced others
+  influence_received?: number; // How much this persona was influenced by others
+  group_context?: {
+    group_id: string;
+    role_in_group: string;
+    group_influence_score: number;
+  };
 }
 
 // Configuration interface to control free-form action behavior
@@ -105,6 +173,7 @@ export interface SimulationConfig {
   action_exploration_mode: boolean; // Encourage creative and unexpected actions
   threat_discovery_focus: boolean; // Focus on finding novel threats and vulnerabilities
   behavioral_diversity_weight: number; // Weight for encouraging diverse behaviors (0-1)
+  multi_agent?: MultiAgentSimulationConfig; // Multi-agent interaction settings
 }
 
 export interface SimulationRequest {
@@ -132,6 +201,14 @@ export interface SimulationMetrics {
   vulnerability_discoveries: number;
   execution_time: string;
   persona_fidelity_scores?: Record<string, number>;
+  // Multi-agent metrics
+  total_interactions?: number;
+  connection_discovery_rate?: number; // Percentage of possible connections discovered
+  influence_propagation_events?: number;
+  group_formation_events?: number;
+  social_engineering_attempts?: number;
+  trust_network_density?: number; // How connected the personas became
+  emergent_behaviors_count?: number;
 }
 
 export type TimelineScope = 
