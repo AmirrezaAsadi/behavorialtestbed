@@ -241,12 +241,12 @@ ${interactionType === 'communication' ? 'Share information or ask a question.' :
 ${interactionType === 'observation' ? 'Make a casual comment or observation.' : ''}
 ${interactionType === 'conflict' ? 'Express disagreement or suspicion.' : ''}
 
-Respond with JSON:
+Respond with valid JSON only. Use proper number format (no + signs). Example:
 {
   "content": "what you say/do (1-2 sentences)",
   "target_response": "how the target responds",
-  "success": true/false,
-  "trust_change": -2 to +2,
+  "success": true,
+  "trust_change": -0.2,
   "outcome": "brief description of result"
 }
     `;
@@ -254,12 +254,53 @@ Respond with JSON:
     try {
       const response = await aiClient.chat.completions.create({
         model: 'grok-3',
-        messages: [{ role: 'user', content: interactionPrompt }],
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are simulating persona interactions. Respond only with valid JSON. Numbers should not have + signs. Use proper JSON format.' 
+          },
+          { role: 'user', content: interactionPrompt }
+        ],
         temperature: 0.8,
         max_tokens: 300
       });
       
-      const result = JSON.parse(response.choices[0].message.content);
+      let result;
+      try {
+        // Clean the response to fix common JSON issues
+        let cleanedResponse = response.choices[0].message.content;
+        
+        // Fix common JSON issues
+        cleanedResponse = cleanedResponse
+          .replace(/\+(\d+)/g, '$1')  // Remove + signs before numbers: +1 → 1
+          .replace(/,\s*}/g, '}')    // Remove trailing commas: , } → }
+          .replace(/,\s*]/g, ']')    // Remove trailing commas: , ] → ]
+          .trim();
+        
+        // Extract JSON if it's wrapped in code blocks
+        if (cleanedResponse.includes('```')) {
+          const jsonMatch = cleanedResponse.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+          if (jsonMatch) {
+            cleanedResponse = jsonMatch[1];
+          }
+        }
+        
+        console.log(`  🧹 Cleaned AI response: ${cleanedResponse.substring(0, 100)}...`);
+        result = JSON.parse(cleanedResponse);
+        
+      } catch (parseError) {
+        console.error('❌ Failed to parse interaction JSON:', parseError);
+        console.error('  Raw response:', response.choices[0].message.content);
+        
+        // Create a fallback result
+        result = {
+          content: `${initiator.name} attempts to ${interactionType} with ${target.name}`,
+          target_response: `${target.name} responds appropriately`,
+          success: Math.random() > 0.5,
+          trust_change: Math.random() * 0.4 - 0.2, // -0.2 to +0.2
+          outcome: `${interactionType} attempt completed`
+        };
+      }
       
       // Calculate trust change
       let trustChange = result.trust_change || 0;
