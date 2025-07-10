@@ -997,7 +997,7 @@ const SciFiPersonaLab = () => {
     behavioral_diversity_weight: 0.8,
     multi_agent: {
       enable_persona_interactions: false,
-      interaction_discovery_rate: 0.3,
+      interaction_discovery_rate: 0.2, // Lowered from 0.3 to 0.2 for easier discovery
       influence_propagation_enabled: true,
       group_formation_enabled: false,
       social_engineering_scenarios: true,
@@ -2170,7 +2170,35 @@ const SciFiPersonaLab = () => {
         )}
 
         {activeTab === 'simulation' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            {/* Multi-Agent Status Debug Panel */}
+            {simulationConfig.multi_agent.enable_persona_interactions && selectedPersonas.length > 1 && (
+              <div className="p-4 border border-cyan-500/30 rounded bg-cyan-500/10">
+                <div className="text-cyan-400 font-mono font-bold text-sm mb-3">
+                  🤖 MULTI-AGENT MODE ACTIVE
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <div className="text-cyan-300 font-mono mb-2">Selected Personas: {selectedPersonas.length}</div>
+                    <div className="text-gray-400 space-y-1">
+                      {selectedPersonas.map(p => (
+                        <div key={p.id}>• {p.name} ({p.type.replace('_', ' ')})</div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-cyan-300 font-mono">Discovery Rate: {Math.round(simulationConfig.multi_agent.interaction_discovery_rate * 100)}%</div>
+                    <div className="text-cyan-300 font-mono">Social Engineering: {simulationConfig.multi_agent.social_engineering_scenarios ? 'ON' : 'OFF'}</div>
+                    <div className="text-cyan-300 font-mono">Influence Propagation: {simulationConfig.multi_agent.influence_propagation_enabled ? 'ON' : 'OFF'}</div>
+                  </div>
+                </div>
+                <div className="mt-3 text-yellow-400 font-mono text-xs">
+                  ⚡ Personas will discover connections and influence each other during simulation
+                </div>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               {/* Radar Display */}
               <HolographicPanel glow className="h-[32rem]">
@@ -2586,6 +2614,7 @@ const SciFiPersonaLab = () => {
               <SimulationControl />
               <SystemStats />
             </div>
+          </div>
           </div>
         )}
       </div>
