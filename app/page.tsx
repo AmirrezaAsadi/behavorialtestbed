@@ -2328,7 +2328,7 @@ const SciFiPersonaLab = () => {
                             <span className="text-cyan-400 w-20 truncate">{persona?.name}</span>
                             <div className="flex gap-1 flex-wrap">
                               {Object.entries(actions).map(([action, count]) => (
-                                <span key={action} className="px-1 py-0.5 bg-gray-700 rounded text-xs">
+                                <span key={action} className="px-1 py-0.5 bg-gray-200 rounded text-xs">
                                   {action.replace('_', ' ')}: {count}
                                 </span>
                               ))}
