@@ -74,42 +74,63 @@ function createExamplePersonas(): Persona[] {
       name: 'Alice Security',
       type: 'SECURITY_PRACTITIONER',
       subtype: 'security_expert',
+      demographics: {
+        age: 35,
+        background: 'Senior security analyst with 10 years experience',
+        location: 'Corporate Office',
+        languages: ['English'],
+        nationality: 'US'
+      },
       skills: {
         technical_expertise: 5,
         privacy_concern: 4,
         risk_tolerance: 2,
         security_awareness: 5
       },
-      motivation: 'Protect organization from security threats',
-      background: 'Senior security analyst with 10 years experience'
+      behavioral_patterns: ['methodical', 'security-focused', 'analytical'],
+      motivation: 'Protect organization from security threats'
     },
     {
       id: 'threat_actor_001',
       name: 'Bob Malicious',
       type: 'THREAT_ACTOR',
       subtype: 'social_engineer',
+      demographics: {
+        age: 28,
+        background: 'Experienced social engineer targeting corporate environments',
+        location: 'Remote',
+        languages: ['English'],
+        nationality: 'Unknown'
+      },
       skills: {
         technical_expertise: 3,
         privacy_concern: 1,
         risk_tolerance: 4,
         security_awareness: 4
       },
-      motivation: 'Gain unauthorized access to sensitive information',
-      background: 'Experienced social engineer targeting corporate environments'
+      behavioral_patterns: ['manipulative', 'persistent', 'opportunistic'],
+      motivation: 'Gain unauthorized access to sensitive information'
     },
     {
       id: 'regular_user_001',
       name: 'Carol Normal',
       type: 'REGULAR_USER',
       subtype: 'office_worker',
+      demographics: {
+        age: 32,
+        background: 'Marketing coordinator with basic technical skills',
+        location: 'Corporate Office',
+        languages: ['English'],
+        nationality: 'US'
+      },
       skills: {
         technical_expertise: 2,
         privacy_concern: 3,
         risk_tolerance: 3,
         security_awareness: 2
       },
-      motivation: 'Complete daily work tasks efficiently',
-      background: 'Marketing coordinator with basic technical skills'
+      behavioral_patterns: ['task-focused', 'collaborative', 'trusting'],
+      motivation: 'Complete daily work tasks efficiently'
     }
   ];
 }

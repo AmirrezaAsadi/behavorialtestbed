@@ -164,10 +164,10 @@ export abstract class BaseAgent extends EventEmitter {
   protected name: string;
   protected persona: Persona;
   protected state: AgentState = AgentState.IDLE;
-  protected memory: AgentMemory;
+  protected memory!: AgentMemory;
   protected goals: AgentGoal[] = [];
   protected current_intentions: string[] = [];
-  protected perception: AgentPerception;
+  protected perception!: AgentPerception;
   protected decision_history: AgentDecision[] = [];
   protected message_queue: AgentMessage[] = [];
   protected is_active: boolean = false;

@@ -108,7 +108,7 @@ export interface EmergentBehavior {
  * 5. System-wide metrics and monitoring
  */
 export class SharedEnvironment extends EventEmitter {
-  private state: EnvironmentState;
+  private state!: EnvironmentState;
   private agents: Map<string, BaseAgent> = new Map();
   private message_history: AgentMessage[] = [];
   private event_history: EnvironmentEvent[] = [];

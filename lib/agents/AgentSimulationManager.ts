@@ -70,7 +70,16 @@ export class AgentSimulationManager {
   private is_running: boolean = false;
   private start_time: Date | null = null;
   private interaction_logs: AgentInteractionLog[] = [];
-  private metrics: AgentSimulationMetrics;
+  private metrics: AgentSimulationMetrics = {
+    total_agent_cycles: 0,
+    total_interactions: 0,
+    emergent_behaviors_detected: 0,
+    threats_generated: 0,
+    security_incidents: 0,
+    average_agent_activity: 0,
+    system_security_evolution: [],
+    goal_completion_rates: {}
+  };
 
   constructor(
     private scenario: any,
@@ -301,7 +310,18 @@ export class AgentSimulationManager {
           timestamp: interaction.timestamp.toISOString(),
           vulnerabilities_found: this.extractVulnerabilitiesFromInteraction(interaction),
           persona_characteristics_displayed: this.extractCharacteristicsFromAgent(initiatorAgent),
-          interactions_initiated: [interaction],
+          interactions_initiated: [{
+            id: interaction.id,
+            timestamp: interaction.timestamp.toISOString(),
+            initiator_id: interaction.initiator_id,
+            target_id: interaction.target_id,
+            interaction_type: interaction.interaction_type as any,
+            content: typeof interaction.content === 'string' ? interaction.content : JSON.stringify(interaction.content),
+            success: interaction.outcome === 'success',
+            influence_applied: interaction.influence_applied,
+            context: `Agent simulation interaction: ${interaction.interaction_type}`,
+            outcome: interaction.outcome
+          }],
           influence_applied: interaction.influence_applied
         };
 
