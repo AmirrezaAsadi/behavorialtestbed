@@ -1005,6 +1005,17 @@ const SciFiPersonaLab = () => {
       interaction_types: ['communication', 'observation', 'influence', 'collaboration'] as const
     }
   });
+
+  // Enhanced Agent System Configuration
+  const [useEnhancedAgents, setUseEnhancedAgents] = useState(false);
+  const [agentConfig, setAgentConfig] = useState({
+    simulation_duration_minutes: 3,
+    enable_emergent_behaviors: true,
+    enable_learning: true,
+    enable_memory_persistence: true,
+    max_concurrent_agents: 10
+  });
+
   const matrixRef = useRef<HTMLCanvasElement>(null);
 
   // Matrix background animation
@@ -1211,19 +1222,27 @@ const SciFiPersonaLab = () => {
     setEvaluationMetrics(null);
 
     try {
-      // Call the API for all simulation data
-      const response = await fetch('/api/simulation/run', {
+      // Choose API endpoint based on agent system selection
+      const apiEndpoint = useEnhancedAgents ? '/api/simulation/agent-run' : '/api/simulation/run';
+      const requestBody = useEnhancedAgents ? {
+        personas: selectedPersonas,
+        scenario: scenarioToUse,
+        config: agentConfig
+      } : {
+        personas: selectedPersonas,
+        scenario: activeScenario,
+        timeline_scope: { max_steps: activeScenario.workflow_steps.length },
+        speed: speed,
+        config: simulationConfig
+      };
+
+      // Call the appropriate API
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          personas: selectedPersonas,
-          scenario: activeScenario,
-          timeline_scope: { max_steps: activeScenario.workflow_steps.length },
-          speed: speed,
-          config: simulationConfig
-        }),
+        body: JSON.stringify(requestBody),
       });
       
       if (!response.ok) {
@@ -1488,8 +1507,109 @@ const SciFiPersonaLab = () => {
             </div>
           </div>
           
+          {/* Enhanced Agent System Toggle */}
+          <div className="border border-green-500/30 rounded p-3 bg-green-500/10 space-y-2">
+            <div className="text-green-400 font-mono font-bold text-xs">
+              AGENT SYSTEM SELECTION
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={useEnhancedAgents}
+                  onChange={(e) => setUseEnhancedAgents(e.target.checked)}
+                  className="w-3 h-3 accent-green-400"
+                />
+                <span className="text-green-200 font-mono text-xs">Use Enhanced Multi-Agent System (BDI Architecture)</span>
+              </label>
+              
+              {useEnhancedAgents && (
+                <div className="ml-4 space-y-2 border-l border-green-500/30 pl-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-300 font-mono text-xs">Duration (min):</span>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value={agentConfig.simulation_duration_minutes}
+                      onChange={(e) => setAgentConfig(prev => ({
+                        ...prev,
+                        simulation_duration_minutes: parseInt(e.target.value)
+                      }))}
+                      className="w-16 accent-green-400"
+                    />
+                    <span className="text-green-200 font-mono text-xs">
+                      {agentConfig.simulation_duration_minutes}m
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-300 font-mono text-xs">Max Agents:</span>
+                    <input
+                      type="range"
+                      min="2"
+                      max="20"
+                      step="1"
+                      value={agentConfig.max_concurrent_agents}
+                      onChange={(e) => setAgentConfig(prev => ({
+                        ...prev,
+                        max_concurrent_agents: parseInt(e.target.value)
+                      }))}
+                      className="w-16 accent-green-400"
+                    />
+                    <span className="text-green-200 font-mono text-xs">
+                      {agentConfig.max_concurrent_agents}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-1">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={agentConfig.enable_emergent_behaviors}
+                        onChange={(e) => setAgentConfig(prev => ({
+                          ...prev,
+                          enable_emergent_behaviors: e.target.checked
+                        }))}
+                        className="w-3 h-3 accent-green-400"
+                      />
+                      <span className="text-green-200 font-mono text-xs">Emergent Behaviors</span>
+                    </label>
+                    
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={agentConfig.enable_learning}
+                        onChange={(e) => setAgentConfig(prev => ({
+                          ...prev,
+                          enable_learning: e.target.checked
+                        }))}
+                        className="w-3 h-3 accent-green-400"
+                      />
+                      <span className="text-green-200 font-mono text-xs">Agent Learning</span>
+                    </label>
+                    
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={agentConfig.enable_memory_persistence}
+                        onChange={(e) => setAgentConfig(prev => ({
+                          ...prev,
+                          enable_memory_persistence: e.target.checked
+                        }))}
+                        className="w-3 h-3 accent-green-400"
+                      />
+                      <span className="text-green-200 font-mono text-xs">Memory Persistence</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Multi-Agent Interaction Configuration */}
-          {selectedPersonas.length > 1 && (
+          {selectedPersonas.length > 1 && !useEnhancedAgents && (
             <div className="border border-cyan-500/30 rounded p-3 bg-cyan-500/10 space-y-2">
               <div className="text-cyan-400 font-mono font-bold text-xs">
                 MULTI-AGENT INTERACTIONS ({selectedPersonas.length} PERSONAS)
@@ -1606,7 +1726,12 @@ const SciFiPersonaLab = () => {
           
           {/* API Info */}
           <div className="flex items-center gap-2 mt-2">
-            <div className="text-cyan-400 font-mono text-xs">API MODE - PERSONA THINK ALOUD ENABLED</div>
+            <div className={`font-mono text-xs ${useEnhancedAgents ? 'text-green-400' : 'text-cyan-400'}`}>
+              {useEnhancedAgents 
+                ? 'ENHANCED AGENT SYSTEM - BDI ARCHITECTURE ENABLED' 
+                : 'STANDARD API MODE - PERSONA THINK ALOUD ENABLED'
+              }
+            </div>
           </div>
         </div>
 
